@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA History Explorer</title>
+<meta name="description" content="Every NBA game since 1946 and every player season since 1996-97: filter and compare eras, seasons, teams, games and players.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap">
+<style>
+  :root {
+    --color-fg: #1d2129; --color-fg-muted: #5d6573; --color-bg: #f6f7f9; --color-panel: #ffffff;
+    --color-border-line: #e1e4ea; --color-ok: #1f7a4d; --color-warn: #a35b00; --color-bad: #c0362c;
+    --series-1: #c8582a; --series-2: #2f6fb3; --series-3: #3f9a6b; --series-4: #8b5cc7; --series-5: #c4952b; --series-6: #3aa0b8; --series-7: #b84a7d; --series-8: #6b7280;
+    --cds-chart-muted: #c9ced8; --cds-chart-grid: #eceef2; --cds-chart-axis: #c3c8d1; --cds-chart-reference: #8c94a3;
+    --cds-surface-popover: #ffffff; --cds-border: #d9dde4; --cds-text-secondary: #5d6573; --cds-shadow-popover: 0 6px 20px rgba(20, 24, 33, .12);
+    --font-anthropic-sans: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-anthropic-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --cds-font-size-caption: .8125rem; --cds-font-size-body: .9375rem; --cds-font-size-heading: 1.0625rem; --cds-font-size-title: 1.75rem;
+    --cds-font-weight-medium: 600;
+    --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 24px; --cds-gap-xl: 40px;
+    --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 14px; --cds-pad-lg: 18px; --cds-pad-xl: 28px;
+    --cds-radius: 8px; --cds-dur-slow: .3s; --cds-ease-out: cubic-bezier(.2, .8, .2, 1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-fg: #e8eaee; --color-fg-muted: #9aa2b0; --color-bg: #12151b; --color-panel: #1a1e26;
+      --color-border-line: #2b313c; --color-ok: #5cc98f; --color-warn: #e0a24a; --color-bad: #ef6b60;
+      --series-1: #ef8452; --series-2: #6aa6e8; --series-3: #66c495; --series-4: #b18ef0; --series-5: #e2bb5a; --series-6: #62c3d9; --series-7: #e07aa9; --series-8: #9aa2b0;
+      --cds-chart-muted: #3d4451; --cds-chart-grid: #232833; --cds-chart-axis: #3a414d; --cds-chart-reference: #7d8696;
+      --cds-surface-popover: #222733; --cds-border: #353c48; --cds-text-secondary: #9aa2b0; --cds-shadow-popover: 0 6px 20px rgba(0, 0, 0, .45);
+      color-scheme: dark;
+    }
+  }
+  html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); }
+  #dash-root { max-width: 1200px; margin-inline: auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .dash-skeleton:empty { background: var(--cds-chart-grid); border-radius: var(--cds-radius); }
+  span.dash-skeleton { color: transparent; background: var(--cds-chart-grid); border-radius: 4px; }
+  [hidden] { display: none !important; }
+</style>
+<script src="d3.min.js"></script>
+<script src="shim.js"></script>
+</head>
+<body>
+<main id="dash-root">
+<style>
+  .nx { container-type: inline-size; display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .nx-head { display: grid; gap: var(--cds-gap-xs); }
+  .nx-title { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+  .nx-sub { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); }
+  .nx-bar { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-border-line); padding-bottom: var(--cds-pad-sm); }
+  .nx-tabs, .nx-seg, .nx-chips { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); }
+  .nx-tabs button, .nx-seg button, .nx-chips button, .nx-btn {
+    font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg-muted); background: transparent;
+    border: 1px solid transparent; border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); cursor: pointer;
+  }
+  .nx-tabs button[aria-selected="true"] { color: var(--color-fg); background: var(--color-panel); border-color: var(--color-border-line); font-weight: var(--cds-font-weight-medium); }
+  .nx-seg { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 2px; }
+  .nx-seg button { font-size: var(--cds-font-size-caption); padding: 2px var(--cds-pad-sm); }
+  .nx-seg button[aria-pressed="true"], .nx-chips button[aria-pressed="true"] { color: var(--color-fg); background: var(--color-panel); border-color: var(--color-border-line); }
+  .nx-chips button { border-color: var(--color-border-line); font-size: var(--cds-font-size-caption); }
+  .nx-btn { border-color: var(--color-border-line); }
+  .nx button:hover { color: var(--color-fg); }
+  .nx button:focus-visible, .nx select:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 1px; }
+  .nx-page { display: grid; gap: var(--cds-gap-lg); }
+  .nx-controls { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); align-items: end; }
+  .nx-field { display: grid; gap: 2px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .nx input[type=search] { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); max-width: 100%; }
+  .nx select { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); max-width: 100%; }
+  .nx-lede { margin: 0; font-size: var(--cds-font-size-heading); line-height: 1.4; max-width: 65ch; text-wrap: pretty; }
+  .nx-lede b, .nx-era-name b { font-weight: var(--cds-font-weight-medium); }
+  .nx-era-name { display: grid; gap: 2px; }
+  .nx-era-name .nx-era-title { font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); }
+  .nx-muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin: 0; }
+  .nx-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--cds-gap-md); }
+  .nx-tile { display: grid; gap: var(--cds-gap-xs); align-content: start; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); }
+  .nx-tile-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .nx-tile-value { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .nx-tile-value .nx-unit { font-size: var(--cds-font-size-body); color: var(--color-fg-muted); margin-left: 2px; }
+  .nx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--cds-gap-md); }
+  .nx-card { display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); }
+  .nx-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .nx-card-head { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); justify-content: space-between; align-items: start; }
+  .nx-card-head > div { display: grid; gap: 2px; min-width: 0; }
+  .nx-chart { position: relative; min-height: 240px; }
+  .nx-chart.nx-tall { min-height: 300px; }
+  .nx-chart svg { display: block; overflow: visible; }
+  .nx-axis text, .nx-tick { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .nx-axis path, .nx-axis line { stroke: var(--cds-chart-axis); }
+  .nx-axis.nx-noline path { display: none; }
+  .nx-gridline { stroke: var(--cds-chart-grid); stroke-width: 1; }
+  .nx-ref { stroke: var(--cds-chart-reference); stroke-dasharray: 4 3; }
+  .nx-label { fill: var(--color-fg); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .nx-label-muted { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .nx-tip { position: absolute; z-index: 2; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+  .nx-tip .nx-tip-head { color: var(--cds-text-secondary); }
+  .nx-tip .nx-tip-row { display: flex; gap: var(--cds-gap-xs); align-items: center; }
+  .nx-sw { display: inline-block; width: 0.625rem; height: 0.625rem; border-radius: 2px; flex: none; }
+  .nx-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .nx-legend span { display: inline-flex; gap: var(--cds-gap-xs); align-items: center; }
+  .nx-table-wrap { max-height: 32rem; overflow: auto; min-width: 0; }
+  .nx-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .nx-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .nx-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .nx-table .nx-num { text-align: right; }
+  .nx-table th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .nx-table th[aria-sort] button { color: var(--color-fg); }
+  .nx-table tr.nx-hl td { font-weight: var(--cds-font-weight-medium); }
+  .nx-pill { display: inline-block; border-radius: 999px; padding: 0 var(--cds-pad-sm); border: 1px solid var(--color-border-line); white-space: nowrap; }
+  .nx-failed { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .nx-failed i { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); display: inline-block; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  @container (max-width: 640px) { .nx-hide-sm { display: none; } }
+</style>
+
+<div class="nx">
+  <header class="nx-head" id="top">
+    <h1 class="nx-title">NBA History Explorer</h1>
+    <p class="nx-sub">Every NBA and BAA game from <span data-draw="first-date" data-source="games_plus" data-field="date">—</span> to <span data-draw="last-date" data-source="games_plus" data-field="date">—</span>. Filter by era, season, team or game, and switch between regular season and playoffs.</p>
+  </header>
+
+  <div class="nx-bar">
+    <div class="nx-tabs" role="tablist" aria-label="Views">
+      <button type="button" role="tab" data-tab="eras" id="tab-eras">Eras</button>
+      <button type="button" role="tab" data-tab="seasons" id="tab-seasons">Seasons</button>
+      <button type="button" role="tab" data-tab="teams" id="tab-teams">Teams</button>
+      <button type="button" role="tab" data-tab="games" id="tab-games">Games</button>
+      <button type="button" role="tab" data-tab="players" id="tab-players">Players</button>
+    </div>
+    <div class="nx-seg" role="group" aria-label="Game type">
+      <button type="button" data-type="Regular season">Regular season</button>
+      <button type="button" data-type="Playoffs">Playoffs</button>
+      <button type="button" data-type="All">All games</button>
+    </div>
+  </div>
+
+  <!-- ERAS -->
+  <section class="nx-page" id="eras" data-page="eras">
+    <div class="nx-chips" role="group" aria-label="Era">
+      <button type="button" data-era="all">All time</button>
+      <span class="nx-chips" data-draw="era-chips" data-source="eras"></span>
+    </div>
+    <div class="nx-era-name" id="era-summary">
+      <span class="nx-era-title" data-draw="era-stat" data-stat="label" data-source="era_summary" data-field="label">—</span>
+      <p class="nx-muted"><span data-draw="era-stat" data-stat="span" data-source="era_summary" data-field="span">—</span> · <span data-draw="era-stat" data-stat="note" data-source="era_summary" data-field="note">—</span></p>
+    </div>
+    <div class="nx-tiles">
+      <div class="nx-tile"><span class="nx-tile-label">Games played</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="games" data-source="era_summary" data-field="games">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Points per team, per game</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="ppg" data-source="era_summary" data-field="ppg">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Average winning margin</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="margin" data-source="era_summary" data-field="margin">—</span><span class="nx-unit">pts</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Home team won</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="home_win" data-source="era_summary" data-field="home_win">—</span><span class="nx-unit">%</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Upsets</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="upset" data-source="era_summary" data-field="upset">—</span><span class="nx-unit">%</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Decided by 3 or fewer</span><span class="nx-tile-value"><span data-draw="era-stat" data-stat="close" data-source="era_summary" data-field="close">—</span><span class="nx-unit">%</span></span></div>
+    </div>
+
+    <div class="nx-card" id="trend-card">
+      <div class="nx-card-head">
+        <div>
+          <h2 id="trend-title">How the game changed, season by season</h2>
+          <p class="nx-muted">Shaded bands mark each era. The selected era is drawn in color.</p>
+        </div>
+        <label class="nx-field">Measure
+          <select class="nx-metric" id="metric" aria-label="Measure">
+            <option value="ppg">Points per team, per game</option>
+            <option value="margin">Average winning margin</option>
+            <option value="home_win">Home win rate (%)</option>
+            <option value="upset">Upset rate (%)</option>
+            <option value="blowout">Blowouts, 20+ points (%)</option>
+            <option value="close">Close games, 3 or fewer (%)</option>
+          </select>
+        </label>
+      </div>
+      <div class="nx-chart nx-tall" id="trend" data-draw="trend" data-source="league_seasons eras"></div>
+    </div>
+
+    <div class="nx-grid">
+      <div class="nx-card" id="era-compare-card">
+        <h2>Eras side by side</h2>
+        <p class="nx-muted">The same measure, averaged over every game in each era.</p>
+        <div class="nx-chart" id="era-compare" data-draw="era-compare" data-source="era_summary"></div>
+      </div>
+      <div class="nx-card" id="era-champs-card">
+        <h2>Champions in this era</h2>
+        <p class="nx-muted">Winner of each season's final playoff series.</p>
+        <div class="nx-table-wrap">
+          <table class="nx-table" data-source="champions" data-row-key="season">
+            <thead><tr><th data-field="season_label">Season</th><th data-field="champion_name">Champion</th><th data-field="runner_up_name" class="nx-hide-sm">Runner-up</th><th data-field="series" class="nx-num">Series</th></tr></thead>
+            <tbody data-draw="era-champs"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="nx-muted">How these are measured: points per team is the combined score divided by two. An upset is a win by the team the Elo rating model gave less than a 50% chance before tip-off. Home win rate leaves out neutral-site games. Era boundaries are this dashboard's own grouping around rule changes (shot clock in 1954-55, three-point line in 1979-80, hand-check ban in 2004-05).</p>
+  </section>
+
+  <!-- SEASONS -->
+  <section class="nx-page" id="seasons" data-page="seasons" hidden>
+    <div class="nx-controls">
+      <label class="nx-field">Season
+        <select id="season-pick" aria-label="Season" data-draw="season-pick" data-source="league_seasons"></select>
+      </label>
+      <button type="button" class="nx-btn" data-step="-1" aria-label="Previous season">← Previous</button>
+      <button type="button" class="nx-btn" data-step="1" aria-label="Next season">Next →</button>
+    </div>
+    <p class="nx-lede" data-when="champ"><b data-draw="ch" data-field="champion_name" data-source="champions">—</b> won the <span data-draw="ch" data-field="season_label" data-source="champions">—</span> title, beating <b data-draw="ch" data-field="runner_up_name" data-source="champions">—</b> <span data-draw="ch" data-field="series" data-source="champions">—</span> in the Finals.</p>
+    <p class="nx-lede" data-when="nochamp" hidden>No champion yet. The data for this season stops on <span data-draw="last-date" data-source="games_plus" data-field="date">—</span>, before the playoffs.</p>
+    <div class="nx-tiles">
+      <div class="nx-tile"><span class="nx-tile-label">Games played</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="games" data-source="league_seasons" data-field="games">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Points per team, per game</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="ppg" data-source="league_seasons" data-field="ppg">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Average winning margin</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="margin" data-source="league_seasons" data-field="margin">—</span><span class="nx-unit">pts</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Home team won</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="home_win" data-source="league_seasons" data-field="home_win">—</span><span class="nx-unit">%</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Upsets</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="upset" data-source="league_seasons" data-field="upset">—</span><span class="nx-unit">%</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Decided by 3 or fewer</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="close" data-source="league_seasons" data-field="close">—</span><span class="nx-unit">%</span></span></div>
+    </div>
+    <div class="nx-grid">
+      <div class="nx-card" id="season-scatter-card">
+        <h2>Offense vs defense</h2>
+        <p class="nx-muted">Regular season points scored and allowed per game. Up and to the right is better.</p>
+        <div class="nx-legend"><span><i class="nx-sw" data-swatch="0"></i>Champion</span><span><i class="nx-sw" data-swatch="1"></i>Runner-up</span><span><i class="nx-sw" data-swatch="2"></i>Made playoffs</span><span><i class="nx-sw" data-swatch="muted"></i>Missed playoffs</span></div>
+        <div class="nx-chart nx-tall" id="season-scatter" data-draw="season-scatter" data-source="team_seasons"></div>
+      </div>
+      <div class="nx-card" id="standings-card">
+        <h2>Standings</h2>
+        <p class="nx-muted">Regular season record. Select a column to sort.</p>
+        <div class="nx-table-wrap">
+          <table class="nx-table nx-standings" data-source="team_seasons" data-row-key="season,team">
+            <thead><tr>
+              <th data-field="name"><button type="button" data-sort="name">Team</button></th>
+              <th data-field="wins" class="nx-num"><button type="button" data-sort="wins">W</button></th>
+              <th data-field="losses" class="nx-num"><button type="button" data-sort="losses">L</button></th>
+              <th data-field="win_pct" class="nx-num" aria-sort="descending"><button type="button" data-sort="win_pct">Win %</button></th>
+              <th data-field="ppg" class="nx-num nx-hide-sm"><button type="button" data-sort="ppg">PPG</button></th>
+              <th data-field="opp_ppg" class="nx-num nx-hide-sm"><button type="button" data-sort="opp_ppg">Opp PPG</button></th>
+              <th data-field="net" class="nx-num"><button type="button" data-sort="net">Net</button></th>
+              <th data-field="peak_elo" class="nx-num nx-hide-sm"><button type="button" data-sort="peak_elo">Peak Elo</button></th>
+              <th data-field="result"><button type="button" data-sort="result">Result</button></th>
+            </tr></thead>
+            <tbody data-draw="standings"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAMS -->
+  <section class="nx-page" id="teams" data-page="teams" hidden>
+    <div class="nx-controls">
+      <label class="nx-field">Franchise
+        <select id="franchise-pick" aria-label="Franchise" data-draw="franchise-pick" data-source="franchise_summary"></select>
+      </label>
+    </div>
+    <p class="nx-lede">The <b data-draw="fr-stat" data-stat="name" data-source="franchise_summary" data-field="name">—</b> franchise played from <span data-draw="fr-stat" data-stat="first_season" data-source="franchise_summary" data-field="first_season">—</span> to <span data-draw="fr-stat" data-stat="last_season" data-source="franchise_summary" data-field="last_season">—</span>. Its best regular season was <b data-draw="fr-stat" data-stat="best_season" data-source="franchise_summary" data-field="best_season">—</b>, at <span data-draw="fr-stat" data-stat="best_record" data-source="franchise_summary" data-field="best_record">—</span>.</p>
+    <div class="nx-tiles">
+      <div class="nx-tile"><span class="nx-tile-label">Championships</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="titles" data-source="franchise_summary" data-field="titles">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Finals appearances</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="finals" data-source="franchise_summary" data-field="finals">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Playoff seasons</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="playoffs" data-source="franchise_summary" data-field="playoffs">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Seasons</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="seasons" data-source="franchise_summary" data-field="seasons">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Regular season wins</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="wins" data-source="franchise_summary" data-field="wins">—</span></span></div>
+      <div class="nx-tile"><span class="nx-tile-label">Regular season win %</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="win_pct" data-source="franchise_summary" data-field="win_pct">—</span></span></div>
+    </div>
+    <div class="nx-card" id="team-history-card">
+      <h2>Win percentage by season</h2>
+      <p class="nx-muted">Regular season. The dashed line is .500.</p>
+      <div class="nx-legend"><span><i class="nx-sw" data-swatch="0"></i>Champion</span><span><i class="nx-sw" data-swatch="1"></i>Lost in Finals</span><span><i class="nx-sw" data-swatch="2"></i>Made playoffs</span><span><i class="nx-sw" data-swatch="muted"></i>Missed playoffs</span></div>
+      <div class="nx-chart" id="team-history" data-draw="team-history" data-source="team_seasons"></div>
+    </div>
+    <div class="nx-card" id="team-seasons-card">
+      <h2>Every season</h2>
+      <div class="nx-table-wrap">
+        <table class="nx-table" data-source="team_seasons" data-row-key="season,team">
+          <thead><tr>
+            <th data-field="season_label">Season</th>
+            <th data-field="name" class="nx-hide-sm">Team</th>
+            <th data-field="wins" class="nx-num">W</th>
+            <th data-field="losses" class="nx-num">L</th>
+            <th data-field="win_pct" class="nx-num">Win %</th>
+            <th data-field="net" class="nx-num nx-hide-sm">Net</th>
+            <th data-field="playoff_record" class="nx-num nx-hide-sm">Playoffs W-L</th>
+            <th data-field="result">Result</th>
+          </tr></thead>
+          <tbody data-draw="team-seasons"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="nx-page" id="games" data-page="games" hidden>
+    <div class="nx-controls">
+      <label class="nx-field">Show
+        <select id="game-sort" class="nx-gsort" aria-label="Sort games">
+          <option value="total_desc">Highest scoring</option>
+          <option value="total_asc">Lowest scoring</option>
+          <option value="margin_desc">Biggest blowouts</option>
+          <option value="odds_asc">Biggest upsets</option>
+          <option value="margin_asc">Closest finishes</option>
+          <option value="date_desc">Most recent</option>
+        </select>
+      </label>
+      <label class="nx-field">From
+        <select id="game-from" aria-label="From season" data-draw="game-from" data-source="league_seasons"></select>
+      </label>
+      <label class="nx-field">To
+        <select id="game-to" aria-label="To season" data-draw="game-to" data-source="league_seasons"></select>
+      </label>
+      <label class="nx-field">Team
+        <select id="game-team" aria-label="Team" data-draw="game-team" data-source="franchise_summary teams"></select>
+      </label>
+      <button type="button" class="nx-btn nx-greset">Reset</button>
+    </div>
+    <div class="nx-card" id="game-dist-card">
+      <h2>Combined points per game</h2>
+      <p class="nx-muted">Every game that matches the filters above, grouped in 10-point bins.</p>
+      <div class="nx-chart" id="game-dist" data-draw="game-dist" data-source="games_plus"></div>
+    </div>
+    <div class="nx-card" id="game-list-card">
+      <h2>Top 50 games</h2>
+      <p class="nx-muted">Winner's odds is the winning team's pre-game Elo win chance. Lower means a bigger upset.</p>
+      <div class="nx-table-wrap">
+        <table class="nx-table" data-source="games_plus" data-row-key="game_id">
+          <thead><tr>
+            <th data-field="date">Date</th>
+            <th data-field="type" class="nx-hide-sm">Type</th>
+            <th data-field="home">Home</th>
+            <th data-field="home_pts" class="nx-num">Pts</th>
+            <th data-field="away">Away</th>
+            <th data-field="away_pts" class="nx-num">Pts</th>
+            <th data-field="total" class="nx-num">Total</th>
+            <th data-field="margin" class="nx-num">Margin</th>
+            <th data-field="winner_odds" class="nx-num nx-hide-sm">Winner's odds %</th>
+          </tr></thead>
+          <tbody data-draw="game-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYERS -->
+  <section class="nx-page" id="players" data-page="players" hidden>
+    <div class="nx-controls">
+      <label class="nx-field">Season
+        <select id="player-season" aria-label="Season" data-draw="player-season" data-source="players"></select>
+      </label>
+      <label class="nx-field">Rank by
+        <select id="player-stat" class="nx-pstat" aria-label="Rank by">
+          <option value="pts">Points</option>
+          <option value="reb">Rebounds</option>
+          <option value="ast">Assists</option>
+          <option value="stl">Steals</option>
+          <option value="blk">Blocks</option>
+          <option value="fg3m">Threes made</option>
+          <option value="min">Minutes</option>
+          <option value="ts_pct">True shooting %</option>
+          <option value="pie">Player impact (PIE)</option>
+        </select>
+      </label>
+      <label class="nx-field">Games played
+        <select id="player-min" class="nx-pmin" aria-label="Minimum games played">
+          <option value="1">Any</option>
+          <option value="10">10 or more</option>
+          <option value="20">20 or more</option>
+          <option value="41">41 or more</option>
+          <option value="58">58 or more</option>
+        </select>
+      </label>
+      <label class="nx-field">Team
+        <select id="player-team" aria-label="Team" data-draw="player-team" data-source="franchise_summary teams"></select>
+      </label>
+      <label class="nx-field">Find a player
+        <input id="player-q" class="nx-pq" type="search" placeholder="Name" aria-label="Find a player" autocomplete="off">
+      </label>
+    </div>
+    <p class="nx-muted">Per-game averages, from 1996-97 on. The Playoffs switch shows playoff stats; All games shows the regular season. Shooting % and PIE rankings only count players averaging 15+ minutes. 2026-27 so far comes from ESPN box scores, so it has no usage or PIE yet.</p>
+    <div class="nx-grid">
+      <div class="nx-card" id="player-bars-card">
+        <h2>Top 15</h2>
+        <p class="nx-muted">Select a bar or a table row to see that player's career.</p>
+        <div class="nx-chart nx-tall" id="player-bars" data-draw="player-bars" data-source="players"></div>
+      </div>
+      <div class="nx-card" id="player-profile-card">
+        <div class="nx-card-head">
+          <div>
+            <h2><span data-draw="pl-name" data-source="players" data-field="player">—</span>, career</h2>
+            <p class="nx-muted">The ranked stat in each season. Hover a dot for that season's team and numbers.</p>
+          </div>
+        </div>
+        <div class="nx-chart" id="player-career" data-draw="player-career" data-source="players"></div>
+      </div>
+    </div>
+    <div class="nx-card" id="player-table-card">
+      <h2>Leaderboard</h2>
+      <p class="nx-muted">Top 100 for the chosen stat. Select a row to see that player's career.</p>
+      <div class="nx-table-wrap">
+        <table class="nx-table nx-ptable" data-source="players" data-row-key="season,season_type,player_id">
+          <thead><tr>
+            <th data-field="player">Player</th>
+            <th data-field="team">Team</th>
+            <th data-field="age" class="nx-num nx-hide-sm">Age</th>
+            <th data-field="gp" class="nx-num">GP</th>
+            <th data-field="min" class="nx-num nx-hide-sm">MIN</th>
+            <th data-field="pts" class="nx-num">PTS</th>
+            <th data-field="reb" class="nx-num">REB</th>
+            <th data-field="ast" class="nx-num">AST</th>
+            <th data-field="stl" class="nx-num nx-hide-sm">STL</th>
+            <th data-field="blk" class="nx-num nx-hide-sm">BLK</th>
+            <th data-field="fg3m" class="nx-num nx-hide-sm">3PM</th>
+            <th data-field="fg_pct" class="nx-num nx-hide-sm">FG%</th>
+            <th data-field="fg3_pct" class="nx-num nx-hide-sm">3P%</th>
+            <th data-field="ft_pct" class="nx-num nx-hide-sm">FT%</th>
+            <th data-field="ts_pct" class="nx-num">TS%</th>
+            <th data-field="pie" class="nx-num nx-hide-sm">PIE</th>
+          </tr></thead>
+          <tbody data-draw="player-list"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="nx-card" id="player-seasons-card">
+      <h2>Every season for <span data-draw="pl-name" data-source="players" data-field="player">—</span></h2>
+      <div class="nx-table-wrap">
+        <table class="nx-table" data-source="players" data-row-key="season,season_type,player_id">
+          <thead><tr>
+            <th data-field="season_label">Season</th>
+            <th data-field="team">Team</th>
+            <th data-field="gp" class="nx-num">GP</th>
+            <th data-field="min" class="nx-num nx-hide-sm">MIN</th>
+            <th data-field="pts" class="nx-num">PTS</th>
+            <th data-field="reb" class="nx-num">REB</th>
+            <th data-field="ast" class="nx-num">AST</th>
+            <th data-field="ts_pct" class="nx-num nx-hide-sm">TS%</th>
+            <th data-field="pie" class="nx-num nx-hide-sm">PIE</th>
+          </tr></thead>
+          <tbody data-draw="player-seasons"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <p class="nx-muted">Game results and Elo ratings: FiveThirtyEight's NBA Elo data as extended by Neil Paine through March 17, 2025; later games from ESPN box scores via SportsDataverse, with Elo carried forward using the same formula. Player stats: stats.nba.com via SportsDataverse. ABA and play-in games are left out.</p>
+</div>
+
+<script>
+(() => {
+  // Calculations over the game file. Each is self-contained so readers can check it.
+  dash.calc('games_plus', {
+    inputs: ['games'],
+    title: 'Games with totals and margins',
+    description: 'Each game with numbers typed, combined points, winning margin, and the winner’s pre-game Elo win chance in percent.',
+    fn: (games) => games.map((g) => {
+      const hp = Number(g.home_pts), ap = Number(g.away_pts), p = Number(g.home_win_prob), s = Number(g.season);
+      const homeWon = hp > ap;
+      return {
+        game_id: g.game_id, date: g.date, season: s, season_label: (s - 1) + '-' + String(s % 100).padStart(2, '0'),
+        type: g.type, neutral: Number(g.neutral) === 1, home: g.home, away: g.away, home_pts: hp, away_pts: ap,
+        total: hp + ap, margin: Math.abs(hp - ap), winner: homeWon ? g.home : g.away,
+        winner_odds: Math.round((homeWon ? p : 1 - p) * 1000) / 10,
+        home_elo: Number(g.home_elo), away_elo: Number(g.away_elo),
+      };
+    }),
+  });
+
+  dash.calc('league_seasons', {
+    inputs: ['games_plus'],
+    title: 'League averages by season',
+    description: 'Per season and game type: games, points per team, average margin, and the share of home wins, upsets, 20+ point blowouts and 3-or-fewer finishes.',
+    fn: (games_plus) => {
+      const r1 = (x) => Math.round(x * 10) / 10;
+      const sum = (sub) => {
+        const home = sub.filter((g) => !g.neutral);
+        const pct = (f) => r1(100 * sub.filter(f).length / sub.length);
+        return {
+          games: sub.length,
+          ppg: r1(sub.reduce((a, g) => a + g.total, 0) / sub.length / 2),
+          margin: r1(sub.reduce((a, g) => a + g.margin, 0) / sub.length),
+          home_win: home.length ? r1(100 * home.filter((g) => g.home_pts > g.away_pts).length / home.length) : null,
+          upset: pct((g) => g.winner_odds < 50),
+          blowout: pct((g) => g.margin >= 20),
+          close: pct((g) => g.margin <= 3),
+        };
+      };
+      const bySeason = new Map();
+      for (const g of games_plus) {
+        if (!bySeason.has(g.season)) bySeason.set(g.season, []);
+        bySeason.get(g.season).push(g);
+      }
+      const out = [];
+      for (const [season, gs] of bySeason) {
+        for (const type of ['Regular season', 'Playoffs', 'All']) {
+          const sub = type === 'All' ? gs : gs.filter((g) => g.type === type);
+          if (sub.length) out.push({season, season_label: gs[0].season_label, type, ...sum(sub)});
+        }
+      }
+      return out.sort((a, b) => a.season - b.season);
+    },
+  });
+
+  dash.calc('era_summary', {
+    inputs: ['games_plus', 'eras'],
+    title: 'League averages by era',
+    description: 'The same measures as the season averages, over every game in each era and over all time.',
+    fn: (games_plus, eras) => {
+      const r1 = (x) => Math.round(x * 10) / 10;
+      const label = (s) => (s - 1) + '-' + String(s % 100).padStart(2, '0');
+      const sum = (sub) => {
+        const home = sub.filter((g) => !g.neutral);
+        const pct = (f) => r1(100 * sub.filter(f).length / sub.length);
+        return {
+          games: sub.length,
+          ppg: r1(sub.reduce((a, g) => a + g.total, 0) / sub.length / 2),
+          margin: r1(sub.reduce((a, g) => a + g.margin, 0) / sub.length),
+          home_win: home.length ? r1(100 * home.filter((g) => g.home_pts > g.away_pts).length / home.length) : null,
+          upset: pct((g) => g.winner_odds < 50),
+          blowout: pct((g) => g.margin >= 20),
+          close: pct((g) => g.margin <= 3),
+        };
+      };
+      const first = games_plus[0].season, last = games_plus[games_plus.length - 1].season;
+      const list = [{era: 'all', label: 'All time', first, last, note: 'Every season in the data'}]
+        .concat(eras.map((e) => ({era: e.era, label: e.label, first: Number(e.first_season), last: Number(e.last_season), note: e.note})));
+      const out = [];
+      for (const e of list) {
+        const inEra = games_plus.filter((g) => g.season >= e.first && g.season <= e.last);
+        for (const type of ['Regular season', 'Playoffs', 'All']) {
+          const sub = type === 'All' ? inEra : inEra.filter((g) => g.type === type);
+          if (!sub.length) continue;
+          out.push({era: e.era, type, label: e.label, note: e.note, first_season: e.first, last_season: e.last,
+            span: label(e.first) + ' to ' + label(e.last), seasons: e.last - e.first + 1, ...sum(sub)});
+        }
+      }
+      return out;
+    },
+  });
+
+  dash.calc('champions', {
+    inputs: ['games_plus', 'teams'],
+    title: 'Champions by season',
+    description: 'The two teams in each season’s last playoff game, and the series record between them in that postseason.',
+    fn: (games_plus, teams) => {
+      const names = new Map(teams.map((t) => [t.team, t.name]));
+      const po = new Map();
+      for (const g of games_plus) {
+        if (g.type !== 'Playoffs') continue;
+        if (!po.has(g.season)) po.set(g.season, []);
+        po.get(g.season).push(g);
+      }
+      const out = [];
+      for (const [season, gs] of po) {
+        const last = gs[gs.length - 1];
+        const pair = new Set([last.home, last.away]);
+        const series = gs.filter((g) => pair.has(g.home) && pair.has(g.away));
+        const wins = new Map([[last.home, 0], [last.away, 0]]);
+        for (const g of series) wins.set(g.winner, wins.get(g.winner) + 1);
+        const [champ, runner] = [...wins.entries()].sort((a, b) => b[1] - a[1]);
+        out.push({season, season_label: last.season_label,
+          champion: champ[0], champion_name: names.get(champ[0]) || champ[0],
+          runner_up: runner[0], runner_up_name: names.get(runner[0]) || runner[0], series: champ[1] + '-' + runner[1]});
+      }
+      return out.sort((a, b) => a.season - b.season);
+    },
+  });
+
+  dash.calc('team_seasons', {
+    inputs: ['games_plus', 'teams', 'champions'],
+    title: 'Team records by season',
+    description: 'Each team’s regular season record and points per game, playoff wins and losses, highest pre-game Elo rating, and how its season ended.',
+    fn: (games_plus, teams, champions) => {
+      const r1 = (x) => Math.round(x * 10) / 10;
+      const info = new Map(teams.map((t) => [t.team, t]));
+      const champ = new Map(champions.map((c) => [c.season, c]));
+      const poSeasons = new Set(games_plus.filter((g) => g.type === 'Playoffs').map((g) => g.season));
+      const m = new Map();
+      for (const g of games_plus) {
+        for (const [team, pf, pa, elo] of [[g.home, g.home_pts, g.away_pts, g.home_elo], [g.away, g.away_pts, g.home_pts, g.away_elo]]) {
+          const key = g.season + ',' + team;
+          if (!m.has(key)) {
+            const t = info.get(team) || {};
+            m.set(key, {season: g.season, season_label: g.season_label, team, name: t.name || team, franchise: t.franchise || team,
+              wins: 0, losses: 0, pf: 0, pa: 0, peak_elo: 0, po_wins: 0, po_losses: 0});
+          }
+          const r = m.get(key);
+          r.peak_elo = Math.max(r.peak_elo, elo);
+          if (g.type === 'Playoffs') { if (pf > pa) r.po_wins++; else r.po_losses++; }
+          else { if (pf > pa) r.wins++; else r.losses++; r.pf += pf; r.pa += pa; }
+        }
+      }
+      return [...m.values()].map((r) => {
+        const gp = r.wins + r.losses;
+        const c = champ.get(r.season);
+        const result = !poSeasons.has(r.season) ? 'In progress'
+          : c && c.champion === r.team ? 'Champion'
+          : c && c.runner_up === r.team ? 'Lost Finals'
+          : r.po_wins + r.po_losses > 0 ? 'Playoffs' : 'Missed playoffs';
+        return {season: r.season, season_label: r.season_label, team: r.team, name: r.name, franchise: r.franchise,
+          wins: r.wins, losses: r.losses, win_pct: gp ? Math.round(1000 * r.wins / gp) / 1000 : null,
+          ppg: gp ? r1(r.pf / gp) : null, opp_ppg: gp ? r1(r.pa / gp) : null, net: gp ? r1((r.pf - r.pa) / gp) : null,
+          peak_elo: r.peak_elo, po_wins: r.po_wins, po_losses: r.po_losses,
+          playoff_record: r.po_wins + r.po_losses ? r.po_wins + '-' + r.po_losses : '', result};
+      }).sort((a, b) => a.season - b.season || a.team.localeCompare(b.team));
+    },
+  });
+
+  dash.calc('franchise_summary', {
+    inputs: ['team_seasons'],
+    title: 'Franchise totals',
+    description: 'All-time regular season record, titles, Finals and playoff appearances, and best regular season for each franchise across its city moves.',
+    fn: (team_seasons) => {
+      const m = new Map();
+      for (const r of team_seasons) {
+        if (!m.has(r.franchise)) m.set(r.franchise, []);
+        m.get(r.franchise).push(r);
+      }
+      return [...m.entries()].map(([franchise, rs]) => {
+        const wins = rs.reduce((a, r) => a + r.wins, 0), losses = rs.reduce((a, r) => a + r.losses, 0);
+        const best = rs.filter((r) => r.result !== 'In progress').sort((a, b) => b.win_pct - a.win_pct || b.wins - a.wins)[0] || rs[0];
+        return {franchise, name: rs[rs.length - 1].name, first_season: rs[0].season_label, last_season: rs[rs.length - 1].season_label,
+          seasons: rs.length, wins, losses, win_pct: Math.round(1000 * wins / (wins + losses)) / 1000,
+          titles: rs.filter((r) => r.result === 'Champion').length,
+          finals: rs.filter((r) => r.result === 'Champion' || r.result === 'Lost Finals').length,
+          playoffs: rs.filter((r) => r.po_wins + r.po_losses > 0).length,
+          best_season: best.season_label + ' ' + best.name, best_record: best.wins + '-' + best.losses};
+      }).sort((a, b) => a.name.localeCompare(b.name));
+    },
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Shared helpers for the drawings.
+  window.nx = (() => {
+    const bad = new Set(['error', 'connect', 'declined', 'missing']);
+    const state = (ids) => {
+      const ss = ids.map((id) => dash.data(id).status);
+      if (ss.some((s) => bad.has(s))) return 'error';
+      return ss.every((s) => s === 'ok') ? 'ok' : 'loading';
+    };
+    const failed = () => {
+      const d = document.createElement('span');
+      d.className = 'nx-failed';
+      d.append(document.createElement('i'), 'Failed to load');
+      return d;
+    };
+    // kind: 'chart' | 'text' | 'rows' (a tbody) | 'select'
+    const guard = (el, ids, kind) => {
+      const st = state(ids);
+      if (st === 'ok') { el.classList.remove('dash-skeleton'); return true; }
+      if (kind === 'text') { el.textContent = '—'; el.classList.toggle('dash-skeleton', st === 'loading'); return false; }
+      if (kind === 'chart') { el.replaceChildren(); if (st === 'error') el.append(failed()); el.classList.toggle('dash-skeleton', st === 'loading'); return false; }
+      if (kind === 'rows') {
+        el.replaceChildren();
+        if (st === 'error') { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 12; td.append(failed()); tr.append(td); el.append(tr); }
+        return false;
+      }
+      el.replaceChildren(); return false;
+    };
+    const enc = (v) => String(v).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+    const f1 = d3.format('.1f'), fc = d3.format(','), f3 = (v) => d3.format('.3f')(v);
+    const fmtStat = (k, v) => {
+      if (v == null || v === '') return '—';
+      if (k === 'games' || k === 'wins' || k === 'seasons' || k === 'titles' || k === 'finals' || k === 'playoffs') return fc(v);
+      if (k === 'win_pct') return f3(v);
+      if (typeof v === 'number') return f1(v);
+      return String(v);
+    };
+    const metrics = {
+      ppg: {label: 'Points per team', fmt: (v) => f1(v)},
+      margin: {label: 'Avg margin', fmt: (v) => f1(v) + ' pts'},
+      home_win: {label: 'Home win rate', fmt: (v) => f1(v) + '%'},
+      upset: {label: 'Upset rate', fmt: (v) => f1(v) + '%'},
+      blowout: {label: 'Blowouts', fmt: (v) => f1(v) + '%'},
+      close: {label: 'Close games', fmt: (v) => f1(v) + '%'},
+    };
+    const textWidth = (svg, strings, cls) => {
+      const g = svg.append('g').attr('class', cls || 'nx-tick');
+      let w = 0;
+      for (const s of strings) { const t = g.append('text').attr('class', cls || 'nx-tick').text(s); w = Math.max(w, t.node().getComputedTextLength()); }
+      g.remove();
+      return w;
+    };
+    const tip = (el) => {
+      const d = document.createElement('div');
+      d.className = 'nx-tip'; d.hidden = true; el.append(d);
+      return {
+        show(x, y, head, rows) {
+          d.replaceChildren();
+          const h = document.createElement('div'); h.className = 'nx-tip-head'; h.textContent = head; d.append(h);
+          for (const r of rows) {
+            const row = document.createElement('div'); row.className = 'nx-tip-row';
+            if (r.color) { const sw = document.createElement('i'); sw.className = 'nx-sw'; sw.style.background = r.color; row.append(sw); }
+            row.append(r.text); d.append(row);
+          }
+          d.hidden = false;
+          const W = el.clientWidth, tw = d.offsetWidth, th = d.offsetHeight;
+          d.style.left = Math.max(0, Math.min(W - tw, x + 12)) + 'px';
+          d.style.top = Math.max(0, y - th - 8) + 'px';
+        },
+        hide() { d.hidden = true; },
+      };
+    };
+    const resultColor = (res) => res === 'Champion' ? dash.colors[0] : res === 'Lost Finals' ? dash.colors[1]
+      : res === 'Playoffs' ? dash.colors[2] : 'var(--cds-chart-muted)';
+    const seasonLabel = (s) => (s - 1) + '-' + String(s % 100).padStart(2, '0');
+    const axis = (g) => g.attr('font-size', null).attr('font-family', null).attr('class', 'nx-axis');
+    return {state, guard, enc, fmtStat, metrics, textWidth, tip, resultColor, seasonLabel, axis, stSort: {key: 'win_pct', dir: -1}};
+  })();
+})();
+</script>
+
+<script>
+(() => {
+  // Controls: tabs, game type, era, measure, season stepping, sorting.
+  const startTab = location.hash.slice(1);
+  if (['eras', 'seasons', 'teams', 'games', 'players'].includes(startTab)) dash.setParams({tab: startTab});
+
+  document.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
+    dash.setParams({tab: b.dataset.tab});
+    dash.setLink(b.dataset.tab);
+  }));
+  document.querySelectorAll('[data-type]').forEach((b) => b.addEventListener('click', () => dash.setParams({type: b.dataset.type})));
+  document.querySelectorAll('.nx-chips[role="group"]').forEach((c) => c.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-era]');
+    if (b) dash.setParams({era: b.dataset.era});
+  }));
+  document.querySelectorAll('.nx-metric').forEach((s) => s.addEventListener('change', () => dash.setParams({metric: s.value})));
+  document.querySelectorAll('.nx-gsort').forEach((s) => s.addEventListener('change', () => dash.setParams({gsort: s.value})));
+  document.querySelectorAll('.nx-greset').forEach((b) => b.addEventListener('click', () => {
+    const d = dash.data('league_seasons').data || [];
+    dash.setParams({gsort: 'total_desc', gteam: null, gfrom: d.length ? d[0].season : null, gto: d.length ? d[d.length - 1].season : null});
+  }));
+  document.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => {
+    const seasons = [...new Set((dash.data('league_seasons').data || []).map((r) => r.season))];
+    const i = seasons.indexOf(Number(dash.params().season));
+    const next = seasons[Math.max(0, Math.min(seasons.length - 1, i + Number(b.dataset.step)))];
+    if (next != null) dash.setParams({season: next});
+  }));
+  document.querySelectorAll('.nx-standings th button[data-sort]').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.sort;
+    nx.stSort = {key: k, dir: nx.stSort.key === k ? -nx.stSort.dir : (k === 'name' || k === 'losses' || k === 'opp_ppg' || k === 'result' ? 1 : -1)};
+    document.querySelectorAll('.nx-standings th').forEach((th) => {
+      if (th.querySelector('button')?.dataset.sort === k) th.setAttribute('aria-sort', nx.stSort.dir > 0 ? 'ascending' : 'descending');
+      else th.removeAttribute('aria-sort');
+    });
+    dash.draw('standings');
+  }));
+
+  dash.onData(() => {
+    const p = dash.params();
+    document.querySelectorAll('[data-page]').forEach((s) => { s.hidden = s.dataset.page !== p.tab; });
+    document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === p.tab)));
+    document.querySelectorAll('[data-type]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.type === p.type)));
+    document.querySelectorAll('button[data-era="all"]').forEach((b) => b.setAttribute('aria-pressed', String(p.era === 'all')));
+    document.querySelectorAll('.nx-metric').forEach((s) => { s.value = p.metric; });
+    document.querySelectorAll('.nx-gsort').forEach((s) => { s.value = p.gsort; });
+    document.querySelectorAll('.nx-pstat').forEach((s) => { s.value = p.pstat; });
+    document.querySelectorAll('.nx-pmin').forEach((s) => { s.value = String(p.pmin); });
+    document.querySelectorAll('.nx-pq').forEach((s) => { if (s !== document.activeElement) s.value = p.pq || ''; });
+    document.querySelectorAll('[data-swatch]').forEach((s) => {
+      const i = s.dataset.swatch;
+      s.style.background = i === 'muted' ? 'var(--cds-chart-muted)' : dash.colors[Number(i)];
+    });
+    if (p.tab === 'seasons') {
+      const c = dash.data('champions');
+      const has = c.status === 'ok' && c.data.some((r) => r.season === Number(p.season));
+      const known = c.status === 'ok';
+      document.querySelectorAll('[data-when="champ"]').forEach((el) => { el.hidden = known && !has; });
+      document.querySelectorAll('[data-when="nochamp"]').forEach((el) => { el.hidden = !known || has; });
+    }
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Text drawings: dates, era, season and franchise figures.
+  const fmtDate = (s) => d3.utcFormat('%b %-d, %Y')(new Date(s + 'T00:00:00Z'));
+  dash.draw('first-date', (el) => {
+    if (!nx.guard(el, ['games_plus'], 'text')) return;
+    el.dataset.row = '0';
+    el.textContent = fmtDate(dash.data('games_plus').data[0].date);
+  });
+  dash.draw('last-date', (el) => {
+    if (!nx.guard(el, ['games_plus'], 'text')) return;
+    const d = dash.data('games_plus').data;
+    el.dataset.row = String(d.length - 1);
+    el.textContent = fmtDate(d[d.length - 1].date);
+  });
+
+  dash.draw('era-chips', (el) => {
+    el.replaceChildren();
+    const e = dash.data('eras');
+    if (e.status !== 'ok') return;
+    const era = dash.params().era;
+    for (const r of e.data) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.era = r.era; b.textContent = r.label;
+      b.setAttribute('aria-pressed', String(r.era === era));
+      el.append(b);
+    }
+  });
+
+  dash.draw('era-stat', (el) => {
+    if (!nx.guard(el, ['era_summary'], 'text')) return;
+    const p = dash.params();
+    el.dataset.where = 'era=' + nx.enc(p.era) + '&type=' + nx.enc(p.type);
+    const row = dash.data('era_summary').data.find((r) => r.era === p.era && r.type === p.type);
+    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+  });
+
+  dash.draw('lg-stat', (el) => {
+    if (!nx.guard(el, ['league_seasons'], 'text')) return;
+    const p = dash.params();
+    el.dataset.where = 'season=' + nx.enc(p.season) + '&type=' + nx.enc(p.type);
+    const row = dash.data('league_seasons').data.find((r) => r.season === Number(p.season) && r.type === p.type);
+    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+  });
+
+  dash.draw('ch', (el) => {
+    if (!nx.guard(el, ['champions'], 'text')) return;
+    const s = Number(dash.params().season);
+    el.dataset.where = 'season=' + s;
+    const row = dash.data('champions').data.find((r) => r.season === s);
+    el.textContent = row ? String(row[el.dataset.field]) : '—';
+  });
+
+  dash.draw('fr-stat', (el) => {
+    if (!nx.guard(el, ['franchise_summary'], 'text')) return;
+    const f = dash.params().franchise;
+    el.dataset.where = 'franchise=' + nx.enc(f);
+    const row = dash.data('franchise_summary').data.find((r) => r.franchise === f);
+    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+  });
+
+  // Selects whose choices are data.
+  const seasonOptions = (sel, param, extra) => {
+    const d = dash.data('league_seasons');
+    const seasons = d.status === 'ok' ? d.data.filter((r) => r.type === 'All') : [];
+    sel.replaceChildren(...(extra || []), ...seasons.map((r) => new Option(r.season_label, String(r.season))));
+    const v = dash.params()[param];
+    sel.value = v == null ? (param === 'gto' && seasons.length ? String(seasons[seasons.length - 1].season) : (seasons.length ? String(seasons[0].season) : '')) : String(v);
+  };
+  dash.draw('season-pick', (sel) => {
+    seasonOptions(sel, 'season');
+    sel.onchange = () => dash.setParams({season: Number(sel.value)});
+  });
+  dash.draw('game-from', (sel) => {
+    seasonOptions(sel, 'gfrom');
+    sel.onchange = () => {
+      const v = Number(sel.value), to = Number(dash.params().gto ?? 9999);
+      dash.setParams(v > to ? {gfrom: to, gto: v} : {gfrom: v});
+    };
+  });
+  dash.draw('game-to', (sel) => {
+    seasonOptions(sel, 'gto');
+    sel.onchange = () => {
+      const v = Number(sel.value), from = Number(dash.params().gfrom ?? 0);
+      dash.setParams(v < from ? {gfrom: v, gto: from} : {gto: v});
+    };
+  });
+  const franchiseOptions = (sel, param, all) => {
+    const d = dash.data('franchise_summary');
+    const rows = d.status === 'ok' ? d.data : [];
+    sel.replaceChildren(...(all ? [new Option('All teams', '')] : []), ...rows.map((r) => new Option(r.name, r.franchise)));
+    sel.value = dash.params()[param] ?? '';
+  };
+  dash.draw('franchise-pick', (sel) => {
+    franchiseOptions(sel, 'franchise', false);
+    sel.onchange = () => dash.setParams({franchise: sel.value});
+  });
+  dash.draw('game-team', (sel) => {
+    franchiseOptions(sel, 'gteam', true);
+    sel.onchange = () => dash.setParams({gteam: sel.value || null});
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Tables.
+  const keyOf = (...parts) => parts.map((v) => String(v).replace(/%/g, '%25').replace(/,/g, '%2C')).join(',');
+  const cell = (tr, text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.append(td); return td; };
+  const f1 = d3.format('.1f'), f3 = d3.format('.3f'), fsign = d3.format('+.1f');
+
+  dash.draw('era-champs', (tb) => {
+    if (!nx.guard(tb, ['champions', 'era_summary'], 'rows')) return;
+    const p = dash.params();
+    const era = dash.data('era_summary').data.find((r) => r.era === p.era);
+    const rows = dash.data('champions').data.filter((r) => !era || (r.season >= era.first_season && r.season <= era.last_season)).slice().reverse();
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = String(r.season);
+      cell(tr, r.season_label); cell(tr, r.champion_name); cell(tr, r.runner_up_name, 'nx-hide-sm'); cell(tr, r.series, 'nx-num');
+      return tr;
+    }));
+  });
+
+  dash.draw('standings', (tb) => {
+    if (!nx.guard(tb, ['team_seasons'], 'rows')) return;
+    const s = Number(dash.params().season);
+    const {key, dir} = nx.stSort;
+    const rows = dash.data('team_seasons').data.filter((r) => r.season === s).slice().sort((a, b) => {
+      const x = a[key], y = b[key];
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * dir || b.win_pct - a.win_pct;
+    });
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = keyOf(r.season, r.team);
+      if (r.result === 'Champion') tr.className = 'nx-hl';
+      cell(tr, r.name); cell(tr, String(r.wins), 'nx-num'); cell(tr, String(r.losses), 'nx-num');
+      cell(tr, r.win_pct == null ? '' : f3(r.win_pct), 'nx-num');
+      cell(tr, r.ppg == null ? '' : f1(r.ppg), 'nx-num nx-hide-sm'); cell(tr, r.opp_ppg == null ? '' : f1(r.opp_ppg), 'nx-num nx-hide-sm');
+      cell(tr, r.net == null ? '' : fsign(r.net), 'nx-num'); cell(tr, String(r.peak_elo), 'nx-num nx-hide-sm');
+      const td = cell(tr, ''); const pill = document.createElement('span'); pill.className = 'nx-pill'; pill.textContent = r.result;
+      pill.style.borderColor = nx.resultColor(r.result); td.append(pill);
+      return tr;
+    }));
+  });
+
+  dash.draw('team-seasons', (tb) => {
+    if (!nx.guard(tb, ['team_seasons'], 'rows')) return;
+    const f = dash.params().franchise;
+    const rows = dash.data('team_seasons').data.filter((r) => r.franchise === f).slice().reverse();
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = keyOf(r.season, r.team);
+      if (r.result === 'Champion') tr.className = 'nx-hl';
+      cell(tr, r.season_label); cell(tr, r.name, 'nx-hide-sm');
+      cell(tr, String(r.wins), 'nx-num'); cell(tr, String(r.losses), 'nx-num');
+      cell(tr, r.win_pct == null ? '' : f3(r.win_pct), 'nx-num'); cell(tr, r.net == null ? '' : fsign(r.net), 'nx-num nx-hide-sm');
+      cell(tr, r.playoff_record, 'nx-num nx-hide-sm');
+      const td = cell(tr, ''); const pill = document.createElement('span'); pill.className = 'nx-pill'; pill.textContent = r.result;
+      pill.style.borderColor = nx.resultColor(r.result); td.append(pill);
+      return tr;
+    }));
+  });
+
+  // Games matching the Games tab filters; shared by its chart and table.
+  window.nxGames = () => {
+    const p = dash.params();
+    const all = dash.data('games_plus').data;
+    let codes = null;
+    if (p.gteam) {
+      const ts = dash.data('teams');
+      codes = new Set((ts.status === 'ok' ? ts.data : []).filter((r) => r.franchise === p.gteam).map((r) => r.team));
+    }
+    const from = p.gfrom == null ? -Infinity : Number(p.gfrom), to = p.gto == null ? Infinity : Number(p.gto);
+    return all.filter((g) => g.season >= from && g.season <= to && (p.type === 'All' || g.type === p.type)
+      && (!codes || codes.has(g.home) || codes.has(g.away)));
+  };
+
+  dash.draw('game-list', (tb) => {
+    if (!nx.guard(tb, ['games_plus'].concat(dash.params().gteam ? ['teams'] : []), 'rows')) return;
+    const sorts = {
+      total_desc: (a, b) => b.total - a.total, total_asc: (a, b) => a.total - b.total,
+      margin_desc: (a, b) => b.margin - a.margin || b.total - a.total, margin_asc: (a, b) => a.margin - b.margin || b.total - a.total,
+      odds_asc: (a, b) => a.winner_odds - b.winner_odds, date_desc: (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0),
+    };
+    const rows = nxGames().sort(sorts[dash.params().gsort] || sorts.total_desc).slice(0, 50);
+    tb.replaceChildren(...rows.map((g) => {
+      const tr = document.createElement('tr'); tr.dataset.key = keyOf(g.game_id);
+      cell(tr, g.date); cell(tr, g.type, 'nx-hide-sm');
+      const h = cell(tr, g.home), hp = cell(tr, String(g.home_pts), 'nx-num');
+      const a = cell(tr, g.away), ap = cell(tr, String(g.away_pts), 'nx-num');
+      (g.home_pts > g.away_pts ? [h, hp] : [a, ap]).forEach((td) => { td.style.fontWeight = 'var(--cds-font-weight-medium)'; });
+      cell(tr, String(g.total), 'nx-num'); cell(tr, String(g.margin), 'nx-num'); cell(tr, f1(g.winner_odds), 'nx-num nx-hide-sm');
+      return tr;
+    }));
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Charts.
+
+  dash.draw('trend', (el) => {
+    if (!nx.guard(el, ['league_seasons', 'eras'], 'chart')) return;
+    el.replaceChildren();
+    const p = dash.params(), metric = p.metric in nx.metrics ? p.metric : 'ppg', M = nx.metrics[metric];
+    const rows = dash.data('league_seasons').data.filter((r) => r.type === p.type && r[metric] != null);
+    const eras = dash.data('eras').data.map((e) => ({era: e.era, label: e.label, first: Number(e.first_season), last: Number(e.last_season)}));
+    if (!rows.length) return;
+    const W = el.clientWidth || 600, H = W < 500 ? 260 : 300;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', M.label + ' by season');
+    const y = d3.scaleLinear(d3.extent(rows, (r) => r[metric]), [H - 28, 30]).nice();
+    const yt = y.ticks(5);
+    const left = nx.textWidth(svg, yt.map((v) => d3.format('~f')(v))) + 12;
+    const s0 = rows[0].season, s1 = rows[rows.length - 1].season;
+    const x = d3.scaleLinear([s0 - 0.5, s1 + 0.5], [left, W - 8]);
+    // era bands
+    const bands = svg.append('g');
+    eras.forEach((e, i) => {
+      const x0 = x(Math.max(e.first, s0) - 0.5), x1 = x(Math.min(e.last, s1) + 0.5);
+      if (x1 <= x0) return;
+      const sel = p.era === e.era;
+      bands.append('rect').attr('x', x0).attr('y', 22).attr('width', x1 - x0).attr('height', H - 50)
+        .attr('fill', sel ? dash.colors[0] : 'var(--cds-chart-grid)').attr('opacity', sel ? 0.12 : (i % 2 ? 0.5 : 0.2));
+      const t = bands.append('text').attr('class', sel ? 'nx-label' : 'nx-label-muted').attr('x', x0 + 4).attr('y', 14).text(e.label);
+      if (t.node().getComputedTextLength() > x1 - x0 - 6) t.remove();
+    });
+    svg.append('g').selectAll('line').data(yt).join('line').attr('class', 'nx-gridline').attr('x1', left).attr('x2', W - 8).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(d3.format('~f')).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
+    const nT = Math.max(2, Math.floor((W - left) / 80));
+    const xt = d3.ticks(s0, s1, nT).filter((v) => Number.isInteger(v));
+    svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(xt).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
+    const line = d3.line().defined((r) => r[metric] != null).x((r) => x(r.season)).y((r) => y(r[metric]));
+    const era = eras.find((e) => e.era === p.era);
+    svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', era ? 'var(--cds-chart-muted)' : dash.colors[0]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line);
+    if (era) {
+      svg.append('path').datum(rows.filter((r) => r.season >= era.first && r.season <= era.last)).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2.5).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line);
+    }
+    const dot = svg.append('circle').attr('r', 4).attr('fill', dash.colors[0]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2).attr('visibility', 'hidden');
+    const tip = nx.tip(el);
+    svg.append('rect').attr('x', left).attr('y', 22).attr('width', W - 8 - left).attr('height', H - 50).attr('fill', 'transparent')
+      .on('pointermove', (ev) => {
+        const [mx] = d3.pointer(ev);
+        const s = Math.round(x.invert(mx));
+        const r = rows.find((d) => d.season === s);
+        if (!r) return;
+        dot.attr('cx', x(r.season)).attr('cy', y(r[metric])).attr('visibility', 'visible');
+        tip.show(x(r.season), y(r[metric]), r.season_label + ' · ' + p.type, [{text: M.label + ': ' + M.fmt(r[metric])}, {text: d3.format(',')(r.games) + ' games'}]);
+      })
+      .on('pointerleave', () => { dot.attr('visibility', 'hidden'); tip.hide(); });
+  });
+
+  dash.draw('era-compare', (el) => {
+    if (!nx.guard(el, ['era_summary'], 'chart')) return;
+    el.replaceChildren();
+    const p = dash.params(), metric = p.metric in nx.metrics ? p.metric : 'ppg', M = nx.metrics[metric];
+    const rows = dash.data('era_summary').data.filter((r) => r.type === p.type && r.era !== 'all' && r[metric] != null);
+    if (!rows.length) return;
+    const W = el.clientWidth || 400, bh = 26, gap = 10, H = rows.length * (bh + gap) + 8;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', M.label + ' by era');
+    const left = nx.textWidth(svg, rows.map((r) => r.label), 'nx-label') + 12;
+    const right = nx.textWidth(svg, rows.map((r) => M.fmt(r[metric])), 'nx-label') + 10;
+    const x = d3.scaleLinear([0, d3.max(rows, (r) => r[metric])], [left, W - right]);
+    rows.forEach((r, i) => {
+      const y0 = i * (bh + gap) + 4, sel = r.era === p.era;
+      svg.append('text').attr('class', sel ? 'nx-label' : 'nx-label-muted').attr('x', left - 10).attr('y', y0 + bh / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(r.label);
+      svg.append('rect').attr('x', left).attr('y', y0).attr('height', bh).attr('rx', 3).attr('width', Math.max(1, x(r[metric]) - left))
+        .attr('fill', sel || p.era === 'all' ? dash.colors[0] : 'var(--cds-chart-muted)');
+      svg.append('text').attr('class', 'nx-label').attr('x', x(r[metric]) + 6).attr('y', y0 + bh / 2).attr('dy', '0.35em').text(M.fmt(r[metric]));
+    });
+  });
+
+  dash.draw('season-scatter', (el) => {
+    if (!nx.guard(el, ['team_seasons'], 'chart')) return;
+    el.replaceChildren();
+    const s = Number(dash.params().season);
+    const rows = dash.data('team_seasons').data.filter((r) => r.season === s && r.ppg != null);
+    if (!rows.length) return;
+    const W = el.clientWidth || 400, H = Math.min(380, Math.max(260, W * 0.75));
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Points scored vs allowed');
+    const ext = d3.extent(rows.flatMap((r) => [r.ppg, r.opp_ppg]));
+    const pad = (ext[1] - ext[0]) * 0.08 || 2;
+    const dom = [ext[0] - pad, ext[1] + pad];
+    const y = d3.scaleLinear(dom, [24, H - 40]).nice(); // reversed: fewer points allowed is higher
+    const yt = y.ticks(5);
+    const left = nx.textWidth(svg, yt.map(d3.format('~f'))) + 12;
+    const x = d3.scaleLinear(dom, [left, W - 36]).nice();
+    const xt = x.ticks(Math.max(2, Math.floor((W - left) / 60)));
+    svg.append('g').selectAll('line').data(yt).join('line').attr('class', 'nx-gridline').attr('x1', left).attr('x2', W - 36).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(d3.format('~f')).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
+    svg.append('g').attr('transform', `translate(0,${H - 40})`).call(d3.axisBottom(x).tickValues(xt).tickFormat(d3.format('~f')).tickSizeOuter(0)).call(nx.axis);
+    svg.append('text').attr('class', 'nx-tick').attr('x', W - 36).attr('y', H - 6).attr('text-anchor', 'end').text('Points scored per game →');
+    svg.append('text').attr('class', 'nx-tick').attr('x', left).attr('y', 12).text('↑ Fewer points allowed');
+    // break-even line: scored = allowed
+    const lo = Math.max(x.domain()[0], y.domain()[0]), hi = Math.min(x.domain()[1], y.domain()[1]);
+    svg.append('line').attr('class', 'nx-ref').attr('x1', x(lo)).attr('y1', y(lo)).attr('x2', x(hi)).attr('y2', y(hi));
+    const order = {'Missed playoffs': 0, 'In progress': 0, Playoffs: 1, 'Lost Finals': 2, Champion: 3};
+    const sorted = rows.slice().sort((a, b) => order[a.result] - order[b.result]);
+    const tip = nx.tip(el);
+    svg.append('g').selectAll('circle').data(sorted).join('circle')
+      .attr('cx', (r) => x(r.ppg)).attr('cy', (r) => y(r.opp_ppg)).attr('r', (r) => (r.result === 'Champion' ? 7 : 5))
+      .attr('fill', (r) => nx.resultColor(r.result)).attr('stroke', 'var(--color-panel)').attr('stroke-width', 1.5)
+      .on('pointerenter', (ev, r) => tip.show(x(r.ppg), y(r.opp_ppg), r.name, [
+        {text: r.wins + '-' + r.losses + ' · ' + r.result, color: nx.resultColor(r.result)},
+        {text: 'Scored ' + d3.format('.1f')(r.ppg) + ', allowed ' + d3.format('.1f')(r.opp_ppg)}]))
+      .on('pointerleave', () => tip.hide());
+    const champ = rows.find((r) => r.result === 'Champion');
+    if (champ) svg.append('text').attr('class', 'nx-label').attr('x', x(champ.ppg) + 10).attr('y', y(champ.opp_ppg)).attr('dy', '0.35em').text(champ.team);
+  });
+
+  dash.draw('team-history', (el) => {
+    if (!nx.guard(el, ['team_seasons'], 'chart')) return;
+    el.replaceChildren();
+    const f = dash.params().franchise;
+    const rows = dash.data('team_seasons').data.filter((r) => r.franchise === f && r.win_pct != null);
+    if (!rows.length) return;
+    const W = el.clientWidth || 600, H = 240;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Win percentage by season');
+    const left = nx.textWidth(svg, ['.000', '1.000']) + 12;
+    const x = d3.scaleBand(rows.map((r) => r.season), [left, W - 4]).padding(0.2);
+    const y = d3.scaleLinear([0, 1], [H - 28, 8]);
+    const yt = [0, 0.25, 0.5, 0.75, 1];
+    svg.append('g').selectAll('line').data(yt).join('line').attr('class', 'nx-gridline').attr('x1', left).attr('x2', W - 4).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(d3.format('.3~f')).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
+    const lw = nx.textWidth(svg, ['0000-00']) + 12;
+    const every = Math.max(1, Math.ceil(lw / x.step()));
+    svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(rows.map((r) => r.season).filter((_, i) => i % every === 0)).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
+    const tip = nx.tip(el);
+    svg.append('g').selectAll('rect').data(rows).join('rect')
+      .attr('x', (r) => x(r.season)).attr('width', x.bandwidth()).attr('y', (r) => y(r.win_pct)).attr('height', (r) => y(0) - y(r.win_pct))
+      .attr('rx', Math.min(3, x.bandwidth() / 2)).attr('fill', (r) => nx.resultColor(r.result))
+      .on('pointerenter', (ev, r) => tip.show(x(r.season) + x.bandwidth() / 2, y(r.win_pct), r.season_label + ' · ' + r.name, [
+        {text: r.wins + '-' + r.losses + ' (' + d3.format('.3f')(r.win_pct) + ')'},
+        {text: r.result + (r.playoff_record ? ', playoffs ' + r.playoff_record : ''), color: nx.resultColor(r.result)}]))
+      .on('pointerleave', () => tip.hide());
+    svg.append('line').attr('class', 'nx-ref').attr('x1', left).attr('x2', W - 4).attr('y1', y(0.5)).attr('y2', y(0.5));
+  });
+
+  dash.draw('game-dist', (el) => {
+    if (!nx.guard(el, ['games_plus'].concat(dash.params().gteam ? ['teams'] : []), 'chart')) return;
+    el.replaceChildren();
+    const games = nxGames();
+    if (!games.length) return;
+    const lo = Math.floor(d3.min(games, (g) => g.total) / 10) * 10, hi = Math.ceil((d3.max(games, (g) => g.total) + 1) / 10) * 10;
+    const bins = d3.bin().domain([lo, hi]).thresholds(d3.range(lo, hi + 1, 10))(games.map((g) => g.total));
+    const W = el.clientWidth || 600, H = 240;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Games by combined points');
+    const y = d3.scaleLinear([0, d3.max(bins, (b) => b.length)], [H - 28, 10]).nice();
+    const yt = y.ticks(4);
+    const left = nx.textWidth(svg, yt.map(d3.format(','))) + 12;
+    const x = d3.scaleLinear([lo, hi], [left, W - 8]);
+    svg.append('g').selectAll('line').data(yt).join('line').attr('class', 'nx-gridline').attr('x1', left).attr('x2', W - 8).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(d3.format(',')).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
+    svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).ticks(Math.max(2, Math.floor((W - left) / 60))).tickFormat(d3.format('~f')).tickSizeOuter(0)).call(nx.axis);
+    const tip = nx.tip(el);
+    svg.append('g').selectAll('rect').data(bins).join('rect')
+      .attr('x', (b) => x(b.x0) + 1).attr('width', (b) => Math.max(1, x(b.x1) - x(b.x0) - 2))
+      .attr('y', (b) => y(b.length)).attr('height', (b) => y(0) - y(b.length)).attr('rx', 2).attr('fill', dash.colors[0])
+      .on('pointerenter', (ev, b) => tip.show((x(b.x0) + x(b.x1)) / 2, y(b.length), b.x0 + '–' + (b.x1 - 1) + ' points', [{text: d3.format(',')(b.length) + ' games'}]))
+      .on('pointerleave', () => tip.hide());
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Players tab.
+  const pf1 = d3.format('.1f'), pf3 = d3.format('.3f');
+  const cell = (tr, text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.append(td); return td; };
+  const pstats = {
+    pts: {label: 'Points', fmt: pf1}, reb: {label: 'Rebounds', fmt: pf1}, ast: {label: 'Assists', fmt: pf1},
+    stl: {label: 'Steals', fmt: pf1}, blk: {label: 'Blocks', fmt: pf1}, fg3m: {label: 'Threes made', fmt: pf1},
+    min: {label: 'Minutes', fmt: pf1}, ts_pct: {label: 'True shooting %', fmt: (v) => pf1(v * 100) + '%', rate: true},
+    pie: {label: 'PIE', fmt: (v) => pf1(v * 100) + '%', rate: true},
+  };
+  const pkey = (...parts) => parts.map((v) => String(v).replace(/%/g, '%25').replace(/,/g, '%2C')).join(',');
+  const pnorm = (s) => String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  const ptype = () => (dash.params().type === 'Playoffs' ? 'Playoffs' : 'Regular season');
+  const pstat = () => (dash.params().pstat in pstats ? dash.params().pstat : 'pts');
+  const num = (v) => (v === '' || v == null ? null : Number(v));
+
+  let qTimer;
+  document.querySelectorAll('.nx-pq').forEach((i) => i.addEventListener('input', () => {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(() => dash.setParams({pq: i.value.trim() || null}), 250);
+  }));
+  document.querySelectorAll('.nx-pstat').forEach((s) => s.addEventListener('change', () => dash.setParams({pstat: s.value})));
+  document.querySelectorAll('.nx-pmin').forEach((s) => s.addEventListener('change', () => dash.setParams({pmin: Number(s.value)})));
+  document.querySelectorAll('.nx-ptable').forEach((t) => t.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-player]');
+    if (tr) dash.setParams({player: tr.dataset.player});
+  }));
+
+  // Ranked rows for the current Players filters.
+  const pRanked = () => {
+    const p = dash.params(), k = pstat(), type = ptype(), season = Number(p.pseason);
+    let codes = null;
+    if (p.pteam) {
+      const t = dash.data('teams');
+      codes = new Set((t.status === 'ok' ? t.data : []).filter((r) => r.franchise === p.pteam).map((r) => r.team));
+    }
+    const q = p.pq ? pnorm(p.pq) : '';
+    return dash.data('players').data.filter((r) => Number(r.season) === season && r.season_type === type
+      && Number(r.gp) >= Number(p.pmin || 1) && num(r[k]) != null
+      && (!pstats[k].rate || Number(r.min) >= 15)
+      && (!codes || codes.has(r.team)) && (!q || r.player_key.includes(q)))
+      .sort((a, b) => num(b[k]) - num(a[k]));
+  };
+  const pNeeds = () => ['players'].concat(dash.params().pteam ? ['teams'] : []);
+
+  dash.draw('player-season', (sel) => {
+    const d = dash.data('players');
+    const seasons = d.status === 'ok' ? [...new Map(d.data.map((r) => [Number(r.season), r.season_label])).entries()].sort((a, b) => b[0] - a[0]) : [];
+    sel.replaceChildren(...seasons.map(([s, l]) => new Option(l, String(s))));
+    sel.value = String(dash.params().pseason ?? '');
+    sel.onchange = () => dash.setParams({pseason: Number(sel.value)});
+  });
+  dash.draw('player-team', (sel) => {
+    const d = dash.data('franchise_summary');
+    const rows = d.status === 'ok' ? d.data.filter((r) => r.last_season >= '1996') : [];
+    sel.replaceChildren(new Option('All teams', ''), ...rows.map((r) => new Option(r.name, r.franchise)));
+    sel.value = dash.params().pteam ?? '';
+    sel.onchange = () => dash.setParams({pteam: sel.value || null});
+  });
+
+  dash.draw('player-list', (tb) => {
+    if (!nx.guard(tb, pNeeds(), 'rows')) return;
+    const rows = pRanked().slice(0, 100), sel = dash.params().player;
+    const pct = (v) => (num(v) == null ? '' : pf3(num(v)));
+    const one = (v) => (num(v) == null ? '' : pf1(num(v)));
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = pkey(r.season, r.season_type, r.player_id);
+      tr.dataset.player = r.player_key; tr.style.cursor = 'pointer';
+      if (r.player_key === sel) tr.className = 'nx-hl';
+      cell(tr, r.player); cell(tr, r.team); cell(tr, r.age == null || r.age === '' ? '' : String(r.age), 'nx-num nx-hide-sm');
+      cell(tr, String(r.gp), 'nx-num'); cell(tr, one(r.min), 'nx-num nx-hide-sm');
+      cell(tr, one(r.pts), 'nx-num'); cell(tr, one(r.reb), 'nx-num'); cell(tr, one(r.ast), 'nx-num');
+      cell(tr, one(r.stl), 'nx-num nx-hide-sm'); cell(tr, one(r.blk), 'nx-num nx-hide-sm'); cell(tr, one(r.fg3m), 'nx-num nx-hide-sm');
+      cell(tr, pct(r.fg_pct), 'nx-num nx-hide-sm'); cell(tr, pct(r.fg3_pct), 'nx-num nx-hide-sm'); cell(tr, pct(r.ft_pct), 'nx-num nx-hide-sm');
+      cell(tr, pct(r.ts_pct), 'nx-num'); cell(tr, pct(r.pie), 'nx-num nx-hide-sm');
+      return tr;
+    }));
+  });
+
+  dash.draw('player-bars', (el) => {
+    if (!nx.guard(el, pNeeds(), 'chart')) return;
+    el.replaceChildren();
+    const k = pstat(), S = pstats[k], rows = pRanked().slice(0, 15), sel = dash.params().player;
+    if (!rows.length) return;
+    const W = el.clientWidth || 400, bh = 18, gap = 6, H = rows.length * (bh + gap) + 4;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Top 15 by ' + S.label);
+    const names = rows.map((r) => r.player + ' · ' + r.team);
+    const left = Math.min(W * 0.5, nx.textWidth(svg, names, 'nx-label') + 10);
+    const right = nx.textWidth(svg, rows.map((r) => S.fmt(num(r[k]))), 'nx-label') + 10;
+    const x = d3.scaleLinear([0, num(rows[0][k])], [left, W - right]);
+    const g = svg.append('g').selectAll('g').data(rows).join('g').attr('transform', (r, i) => `translate(0,${i * (bh + gap) + 2})`)
+      .style('cursor', 'pointer').on('click', (ev, r) => dash.setParams({player: r.player_key}));
+    g.append('text').attr('class', (r) => (r.player_key === sel ? 'nx-label' : 'nx-label-muted')).attr('x', left - 8).attr('y', bh / 2).attr('dy', '0.35em').attr('text-anchor', 'end')
+      .text((r) => r.player + ' · ' + r.team).each(function () {
+        const t = d3.select(this); let s = t.text();
+        while (this.getComputedTextLength() > left - 12 && s.length > 4) { s = s.slice(0, -2); t.text(s + '…'); }
+      });
+    g.append('rect').attr('x', left).attr('height', bh).attr('rx', 3).attr('width', (r) => Math.max(1, x(num(r[k])) - left))
+      .attr('fill', (r) => (sel && r.player_key !== sel ? 'var(--cds-chart-muted)' : dash.colors[0]));
+    g.append('text').attr('class', 'nx-label').attr('x', (r) => x(num(r[k])) + 6).attr('y', bh / 2).attr('dy', '0.35em').text((r) => S.fmt(num(r[k])));
+  });
+
+  const pCareer = () => {
+    const key = dash.params().player, type = ptype();
+    return dash.data('players').data.filter((r) => r.player_key === key && r.season_type === type).sort((a, b) => a.season - b.season);
+  };
+
+  dash.draw('pl-name', (el) => {
+    if (!nx.guard(el, ['players'], 'text')) return;
+    const rows = dash.data('players').data.filter((r) => r.player_key === dash.params().player);
+    const r = rows.sort((a, b) => b.season - a.season)[0];
+    if (!r) { el.textContent = '—'; return; }
+    el.dataset.where = 'season=' + r.season + '&season_type=' + nx.enc(r.season_type) + '&player_id=' + nx.enc(r.player_id);
+    el.textContent = r.player;
+  });
+
+  dash.draw('player-career', (el) => {
+    if (!nx.guard(el, ['players'], 'chart')) return;
+    el.replaceChildren();
+    const k = pstat(), S = pstats[k], rows = pCareer().filter((r) => num(r[k]) != null);
+    if (!rows.length) return;
+    const W = el.clientWidth || 400, H = 240;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', S.label + ' by season');
+    const y = d3.scaleLinear([0, d3.max(rows, (r) => num(r[k]))], [H - 28, 12]).nice();
+    const yt = y.ticks(4);
+    const left = nx.textWidth(svg, yt.map((v) => S.fmt(v))) + 12;
+    const seasons = rows.map((r) => Number(r.season));
+    const x = d3.scalePoint(seasons, [left + 10, W - 16]).padding(0.3);
+    svg.append('g').selectAll('line').data(yt).join('line').attr('class', 'nx-gridline').attr('x1', left).attr('x2', W - 8).attr('y1', (v) => y(v)).attr('y2', (v) => y(v));
+    svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(S.fmt).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
+    const lw = nx.textWidth(svg, ['0000-00']) + 12, every = Math.max(1, Math.ceil(lw / (x.step() || lw)));
+    svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(seasons.filter((_, i) => i % every === 0)).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
+    svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+      .attr('d', d3.line().x((r) => x(Number(r.season))).y((r) => y(num(r[k]))));
+    const tip = nx.tip(el);
+    svg.append('g').selectAll('circle').data(rows).join('circle').attr('cx', (r) => x(Number(r.season))).attr('cy', (r) => y(num(r[k])))
+      .attr('r', 4).attr('fill', dash.colors[0]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2)
+      .on('pointerenter', (ev, r) => tip.show(x(Number(r.season)), y(num(r[k])), r.season_label + ' · ' + r.team, [
+        {text: S.label + ': ' + S.fmt(num(r[k]))}, {text: pf1(num(r.pts)) + ' pts, ' + pf1(num(r.reb)) + ' reb, ' + pf1(num(r.ast)) + ' ast in ' + r.gp + ' games'}]))
+      .on('pointerleave', () => tip.hide());
+  });
+
+  dash.draw('player-seasons', (tb) => {
+    if (!nx.guard(tb, ['players'], 'rows')) return;
+    const rows = pCareer().reverse();
+    const pct = (v) => (num(v) == null ? '' : pf3(num(v)));
+    const one = (v) => (num(v) == null ? '' : pf1(num(v)));
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = pkey(r.season, r.season_type, r.player_id);
+      cell(tr, r.season_label); cell(tr, r.team); cell(tr, String(r.gp), 'nx-num'); cell(tr, one(r.min), 'nx-num nx-hide-sm');
+      cell(tr, one(r.pts), 'nx-num'); cell(tr, one(r.reb), 'nx-num'); cell(tr, one(r.ast), 'nx-num');
+      cell(tr, pct(r.ts_pct), 'nx-num nx-hide-sm'); cell(tr, pct(r.pie), 'nx-num nx-hide-sm');
+      return tr;
+    }));
+  });
+})();
+</script>
+
+</main>
+</body>
+</html>
