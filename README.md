@@ -2,7 +2,7 @@
 
 An interactive dashboard of NBA history: every NBA/BAA game since November 1946 and every player season since 1996-97.
 
-**Live site:** https://piblop.github.io/nba-history-explorer/
+**Live site:** https://tcf-pp.github.io/nba-history-explorer/
 
 ## What you can do
 - **Eras**: compare scoring, margins, home advantage, upsets and close games across six eras, season by season.
