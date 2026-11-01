@@ -17,15 +17,17 @@
   const memo = {};      // id -> result of a calc
   const onDataFns = [];
   const drawers = new Map();
-  let queued = false;
+  let queued = false, reasons = new Set();
+  let pending = Object.keys(files).length;
 
   const load = (id) => {
     if (store[id]) return;
     store[id] = {status: 'loading', data: []};
     fetch(files[id])
       .then((r) => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
-      .then((t) => { store[id] = {status: 'ok', data: d3.csvParse(t)}; schedule(); })
-      .catch((e) => { store[id] = {status: 'error', data: [], message: String(e)}; schedule(); });
+      .then((t) => { store[id] = {status: 'ok', data: d3.csvParse(t)}; })
+      .catch((e) => { store[id] = {status: 'error', data: [], message: String(e)}; })
+      .finally(() => { if (--pending === 0) schedule('data'); });
   };
 
   const data = (id) => {
@@ -52,10 +54,12 @@
   };
   const render = () => {
     queued = false;
+    window.dash.reason = reasons.has('data') ? 'data' : reasons.has('params') ? 'params' : reasons.has('resize') ? 'resize' : 'other';
+    reasons = new Set();
     onDataFns.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
     for (const name of drawers.keys()) runDraw(name);
   };
-  function schedule() { if (!queued) { queued = true; requestAnimationFrame(render); } }
+  function schedule(reason) { reasons.add(reason || 'other'); if (!queued) { queued = true; requestAnimationFrame(render); } }
 
   const css = getComputedStyle(document.documentElement);
   window.dash = {
@@ -65,13 +69,15 @@
     onData: (fn) => { onDataFns.push(fn); schedule(); },
     draw: (name, fn) => { if (fn) { drawers.set(name, fn); schedule(); } else runDraw(name); },
     params: () => ({...params}),
-    setParams: (p) => { params = {...params, ...p}; schedule(); },
-    resetParams: () => { params = {...defaults}; schedule(); },
+    setParams: (p) => { params = {...params, ...p}; schedule('params'); },
+    resetParams: () => { params = {...defaults}; schedule('params'); },
     setLink: (name) => { history.replaceState(null, '', '#' + name); },
     refresh: () => {},
+    reason: 'data',
     get colors() { return [1, 2, 3, 4, 5, 6, 7, 8].map((i) => getComputedStyle(document.documentElement).getPropertyValue('--series-' + i).trim()); },
   };
   let w = 0;
-  addEventListener('resize', () => { if (innerWidth !== w) { w = innerWidth; schedule(); } });
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', schedule);
+  addEventListener('resize', () => { if (innerWidth !== w) { w = innerWidth; schedule('resize'); } });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => schedule('resize'));
+  Object.keys(files).forEach(load);
 })();

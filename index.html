@@ -7,16 +7,16 @@
 <meta name="description" content="Every NBA game since 1946 and every player season since 1996-97: filter and compare eras, seasons, teams, games and players.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
 <style>
   :root {
     --color-fg: #1d2129; --color-fg-muted: #5d6573; --color-bg: #f6f7f9; --color-panel: #ffffff;
     --color-border-line: #e1e4ea; --color-ok: #1f7a4d; --color-warn: #a35b00; --color-bad: #c0362c;
-    --series-1: #c8582a; --series-2: #2f6fb3; --series-3: #3f9a6b; --series-4: #8b5cc7; --series-5: #c4952b; --series-6: #3aa0b8; --series-7: #b84a7d; --series-8: #6b7280;
+    --series-1: #e8702a; --series-2: #1d428a; --series-3: #3f9a6b; --series-4: #8b5cc7; --series-5: #c4952b; --series-6: #3aa0b8; --series-7: #b84a7d; --series-8: #6b7280;
     --cds-chart-muted: #c9ced8; --cds-chart-grid: #eceef2; --cds-chart-axis: #c3c8d1; --cds-chart-reference: #8c94a3;
     --cds-surface-popover: #ffffff; --cds-border: #d9dde4; --cds-text-secondary: #5d6573; --cds-shadow-popover: 0 6px 20px rgba(20, 24, 33, .12);
     --font-anthropic-sans: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --font-anthropic-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-anthropic-serif: "Oswald", "Arial Narrow", Impact, sans-serif;
     --cds-font-size-caption: .8125rem; --cds-font-size-body: .9375rem; --cds-font-size-heading: 1.0625rem; --cds-font-size-title: 1.75rem;
     --cds-font-weight-medium: 600;
     --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 24px; --cds-gap-xl: 40px;
@@ -27,7 +27,7 @@
     :root {
       --color-fg: #e8eaee; --color-fg-muted: #9aa2b0; --color-bg: #12151b; --color-panel: #1a1e26;
       --color-border-line: #2b313c; --color-ok: #5cc98f; --color-warn: #e0a24a; --color-bad: #ef6b60;
-      --series-1: #ef8452; --series-2: #6aa6e8; --series-3: #66c495; --series-4: #b18ef0; --series-5: #e2bb5a; --series-6: #62c3d9; --series-7: #e07aa9; --series-8: #9aa2b0;
+      --series-1: #f5873f; --series-2: #7ea6f0; --series-3: #66c495; --series-4: #b18ef0; --series-5: #e2bb5a; --series-6: #62c3d9; --series-7: #e07aa9; --series-8: #9aa2b0;
       --cds-chart-muted: #3d4451; --cds-chart-grid: #232833; --cds-chart-axis: #3a414d; --cds-chart-reference: #7d8696;
       --cds-surface-popover: #222733; --cds-border: #353c48; --cds-text-secondary: #9aa2b0; --cds-shadow-popover: 0 6px 20px rgba(0, 0, 0, .45);
       color-scheme: dark;
@@ -114,10 +114,146 @@
   @container (max-width: 640px) { .nx-hide-sm { display: none; } }
 </style>
 
+<style>
+  /* Arena theme: court-orange accent, condensed scoreboard type, team colors. */
+  :root { --gold: #d9a21b; --arena: #0f1729; --arena-2: #1a2540; --court: #e8702a; --ease: cubic-bezier(.22, 1, .36, 1); --shadow: 0 1px 2px rgba(15, 23, 41, .06), 0 8px 24px rgba(15, 23, 41, .06); }
+  @media (prefers-color-scheme: dark) { :root { --gold: #f0bd3e; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25); } }
+  #dash-root { padding-top: 0; }
+  .nx { gap: var(--cds-gap-xl); }
+  .nx-hero { position: relative; overflow: hidden; isolation: isolate; color: #f4f6fb; background: radial-gradient(120% 140% at 50% 0%, var(--arena-2), var(--arena) 60%); border-radius: 22px; margin-top: 16px; padding: clamp(28px, 6vw, 56px) clamp(18px, 4vw, 44px) clamp(22px, 4vw, 36px); box-shadow: var(--shadow); }
+  .nx-court { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--court); opacity: .22; z-index: -1; }
+  .nx-court [pathLength] { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .nx-ball { fill: var(--court); opacity: .9; }
+  .nx-hero-inner { position: relative; display: grid; gap: 12px; max-width: 1100px; margin-inline: auto; }
+  .nx-kicker { margin: 0; font-family: var(--font-anthropic-serif); text-transform: uppercase; letter-spacing: .14em; font-size: .8125rem; color: var(--court); }
+  .nx-hero .nx-title { font-family: var(--font-anthropic-serif); font-weight: 700; text-transform: uppercase; letter-spacing: .01em; font-size: clamp(2.25rem, 6vw, 4.25rem); line-height: .95; color: #fff; }
+  .nx-hero .nx-sub { color: #c5cbd8; max-width: 62ch; font-size: 1rem; }
+  .nx-boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 10px; margin-top: 10px; min-height: 84px; }
+  .nx-board { display: grid; gap: 2px; align-content: center; padding: 12px 16px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); backdrop-filter: blur(4px); }
+  .nx-board-num { font-family: var(--font-anthropic-serif); font-weight: 600; font-size: 1.875rem; line-height: 1.1; color: #ffcf8a; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .nx-board-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: #aeb6c6; }
+  .nx-board-champ { background: linear-gradient(135deg, var(--team, #333) 0%, color-mix(in srgb, var(--team, #333) 70%, #000) 100%); border-color: var(--team2, transparent); }
+  .nx-board-champ .nx-board-num { color: #fff; font-size: 1.375rem; text-transform: uppercase; }
+  .nx-board-champ .nx-board-label { color: rgba(255, 255, 255, .85); }
+
+  .nx-bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--color-bg) 88%, transparent); backdrop-filter: blur(10px); padding-block: 10px; border-bottom: 1px solid var(--color-border-line); margin-top: -12px; }
+  .nx-tabs { gap: 4px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .nx-tabs button { flex: none; }
+  .nx-tabs button { font-family: var(--font-anthropic-serif); text-transform: uppercase; letter-spacing: .06em; font-size: .9375rem; padding: 6px 14px; border-radius: 999px; transition: background-color .25s var(--ease), color .25s var(--ease), transform .2s var(--ease); }
+  .nx-tabs button:hover { transform: translateY(-1px); }
+  .nx-tabs button[aria-selected="true"] { background: var(--court); color: #fff; border-color: transparent; font-weight: 500; box-shadow: 0 4px 14px color-mix(in srgb, var(--court) 35%, transparent); }
+  .nx-seg { border-radius: 999px; background: var(--color-panel); }
+  .nx-seg button { border-radius: 999px; transition: background-color .25s var(--ease), color .25s var(--ease); }
+  .nx-seg button[aria-pressed="true"] { background: var(--arena); color: #fff; border-color: transparent; }
+  .nx-chips button { border-radius: 999px; padding: 5px 12px; transition: all .25s var(--ease); }
+  .nx-chips button[aria-pressed="true"] { background: var(--court); color: #fff; border-color: var(--court); }
+  .nx-chips button:hover { border-color: var(--court); }
+
+  .nx-page:not([hidden]) { animation: nx-rise .55s var(--ease) both; }
+  .nx-card, .nx-tile { border-radius: 14px; box-shadow: var(--shadow); transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+  .nx-card:hover { transform: translateY(-2px); }
+  .nx-card h2 { font-family: var(--font-anthropic-serif); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; font-size: 1.125rem; }
+  .nx-tile { position: relative; overflow: hidden; }
+  .nx-tile::after { content: ""; position: absolute; right: -18px; bottom: -18px; width: 64px; height: 64px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--court) 22%, transparent); }
+  .nx-tile-label { text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; }
+  .nx-tile-value { font-weight: 600; font-size: 2.125rem; }
+  .nx-era-name .nx-era-title { font-family: var(--font-anthropic-serif); text-transform: uppercase; font-weight: 600; font-size: 2rem; letter-spacing: .02em; }
+  .nx-lede { font-size: 1.125rem; }
+  .nx-chart-auto { min-height: 120px; }
+  .nx-label.nx-strong { font-weight: 600; }
+  .nx-tip { border-radius: 10px; transition: opacity .15s; }
+  .nx-table tbody tr { transition: background-color .2s; }
+  .nx-table tbody tr:hover td { background: color-mix(in srgb, var(--court) 7%, transparent); }
+  .nx-teamcell { display: inline-flex; align-items: center; gap: 8px; }
+  .nx-chip { display: inline-grid; place-items: center; min-width: 2.6em; padding: 2px 6px 4px; border-radius: 5px; color: #fff; font-family: var(--font-anthropic-serif); font-size: .72rem; font-weight: 600; letter-spacing: .06em; line-height: 1.2; border: 1px solid rgba(255, 255, 255, .14); }
+
+  .nx-finals { display: grid; gap: 10px; padding: 18px; border-radius: 16px; background: var(--arena); color: #fff; box-shadow: var(--shadow); animation: nx-rise .6s var(--ease) both; }
+  .nx-finals-title, .nx-finals-foot { font-family: var(--font-anthropic-serif); text-transform: uppercase; letter-spacing: .14em; font-size: .8125rem; color: #aeb6c6; text-align: center; }
+  .nx-finals-foot { color: var(--gold); }
+  .nx-finals-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @container (max-width: 560px) { .nx-finals-row { grid-template-columns: 1fr; } }
+  .nx-finals-side { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 12px; background: linear-gradient(135deg, var(--team), color-mix(in srgb, var(--team) 65%, #000)); border-bottom: 4px solid var(--team2); opacity: .72; }
+  .nx-finals-side.nx-win { opacity: 1; box-shadow: 0 0 0 2px var(--gold), 0 10px 30px color-mix(in srgb, var(--team) 45%, transparent); }
+  .nx-finals-who { display: grid; gap: 2px; min-width: 0; }
+  .nx-finals-code { font-family: var(--font-anthropic-serif); font-size: .8125rem; letter-spacing: .12em; opacity: .85; }
+  .nx-finals-name { font-family: var(--font-anthropic-serif); font-weight: 600; text-transform: uppercase; font-size: 1.25rem; line-height: 1.1; }
+  .nx-finals-rec { font-size: .75rem; opacity: .8; }
+  .nx-finals-score { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 3.25rem; line-height: 1; font-variant-numeric: tabular-nums; }
+
+  .nx-rafters { padding: 18px 16px 22px; border-radius: 16px; background: linear-gradient(180deg, var(--arena) 0%, var(--arena-2) 100%); box-shadow: var(--shadow); }
+  .nx-rafters .nx-muted { color: #aeb6c6; text-align: center; }
+  .nx-banners { display: flex; flex-wrap: wrap; gap: 14px 12px; justify-content: center; min-height: 40px; }
+  .nx-banner { flex: none; display: grid; justify-items: center; align-content: start; gap: 4px; width: 84px; padding: 14px 6px 34px; color: #fff; text-align: center; background: var(--team); border: 2px solid var(--team2); border-top-width: 6px; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%); animation: nx-drop .7s var(--ease) both; transform-origin: top center; }
+  .nx-banner-top { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+  .nx-banner-year { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 1.05rem; line-height: 1.05; }
+  .nx-banner-team { font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+
+  .nx-gcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 12px; }
+  .nx-gcard { display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: var(--color-panel); border: 1px solid var(--color-border-line); box-shadow: var(--shadow); animation: nx-rise .55s var(--ease) both; transition: transform .3s var(--ease); }
+  .nx-gcard:hover { transform: translateY(-3px); }
+  .nx-gcard-head, .nx-gcard-foot { font-size: .75rem; color: var(--color-fg-muted); }
+  .nx-gcard-head { text-transform: uppercase; letter-spacing: .08em; }
+  .nx-gcard-line { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; color: var(--color-fg-muted); }
+  .nx-gcard-line.nx-win { color: var(--color-fg); }
+  .nx-gcard-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9375rem; }
+  .nx-gcard-pts { font-family: var(--font-anthropic-serif); font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .nx-gcard-line.nx-win .nx-gcard-pts::after { content: " ◂"; color: var(--court); font-size: .9rem; }
+
+  .nx-pcard { display: grid; gap: 14px; padding: 16px; border-radius: 14px; color: #fff; background: linear-gradient(135deg, var(--team, #333), color-mix(in srgb, var(--team, #333) 55%, #000)); border-bottom: 4px solid var(--team2, transparent); animation: nx-rise .5s var(--ease) both; }
+  .nx-pcard .nx-muted { color: rgba(255, 255, 255, .8); }
+  .nx-pcard-head { display: flex; align-items: center; gap: 12px; }
+  .nx-pcard-name { display: grid; min-width: 0; }
+  .nx-pcard-player { font-family: var(--font-anthropic-serif); font-weight: 700; text-transform: uppercase; font-size: 1.6rem; line-height: 1.05; }
+  .nx-pcard-meta { font-size: .8125rem; opacity: .85; }
+  .nx-pcard-big { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .nx-pcard-stat { display: grid; justify-items: center; padding: 8px; border-radius: 10px; background: rgba(0, 0, 0, .22); }
+  .nx-pcard-num { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 2rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .nx-pcard-lab { font-size: .72rem; letter-spacing: .12em; opacity: .85; }
+  .nx-pcard-bars { display: grid; gap: 6px; }
+  .nx-pcard-bars-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+  .nx-pbar { display: grid; grid-template-columns: 7.5em 1fr 3em; align-items: center; gap: 8px; font-size: .8125rem; }
+  .nx-pbar-track { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .18); overflow: hidden; }
+  .nx-pbar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--team2, #fff), #fff); transition: width .9s var(--ease); }
+  .nx-pbar-val { text-align: right; font-variant-numeric: tabular-nums; }
+
+  @keyframes nx-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes nx-drop { from { opacity: 0; transform: translateY(-24px) scaleY(.85); } to { opacity: 1; transform: none; } }
+  @keyframes nx-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes nx-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .nx-court [pathLength] { animation: nx-draw 2.2s var(--ease) both; }
+    .nx-ball { transform-box: fill-box; animation: nx-bounce 1.6s ease-in-out infinite; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nx-page:not([hidden]), .nx-finals, .nx-banner, .nx-gcard, .nx-pcard { animation: none !important; }
+    .nx-card, .nx-tile, .nx-tabs button, .nx-gcard { transition: none !important; }
+  }
+</style>
 <div class="nx">
-  <header class="nx-head" id="top">
+  <header class="nx-hero" id="top">
+    <svg class="nx-court" viewBox="0 0 940 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="3">
+        <rect pathLength="1" x="10" y="10" width="920" height="480" rx="4"/>
+        <line pathLength="1" x1="470" y1="10" x2="470" y2="490"/>
+        <circle pathLength="1" cx="470" cy="250" r="60"/>
+        <circle pathLength="1" cx="470" cy="250" r="20"/>
+        <g id="nx-half">
+          <rect pathLength="1" x="10" y="170" width="190" height="160"/>
+          <circle pathLength="1" cx="200" cy="250" r="60"/>
+          <path pathLength="1" d="M10 40 H150 A237.5 237.5 0 0 1 150 460 H10"/>
+          <path pathLength="1" d="M62.5 210 A40 40 0 0 1 62.5 290"/>
+          <line pathLength="1" x1="50" y1="220" x2="50" y2="280"/>
+        </g>
+        <use href="#nx-half" transform="translate(940 0) scale(-1 1)"/>
+      </g>
+      <circle class="nx-ball" cx="470" cy="250" r="9"/>
+    </svg>
+    <div class="nx-hero-inner">
+    <p class="nx-kicker">Since 1946 · Every game, every era</p>
     <h1 class="nx-title">NBA History Explorer</h1>
     <p class="nx-sub">Every NBA and BAA game from <span data-draw="first-date" data-source="games_plus" data-field="date">—</span> to <span data-draw="last-date" data-source="games_plus" data-field="date">—</span>. Filter by era, season, team or game, and switch between regular season and playoffs.</p>
+    <div class="nx-boards" data-draw="hero-stats"></div>
+    </div>
   </header>
 
   <div class="nx-bar">
@@ -180,6 +316,11 @@
         <p class="nx-muted">The same measure, averaged over every game in each era.</p>
         <div class="nx-chart" id="era-compare" data-draw="era-compare" data-source="era_summary"></div>
       </div>
+      <div class="nx-card" id="era-titles-card">
+        <h2>Titles in this era</h2>
+        <p class="nx-muted">One block per championship, in team colors.</p>
+        <div class="nx-chart nx-chart-auto" id="era-titles" data-draw="era-titles"></div>
+      </div>
       <div class="nx-card" id="era-champs-card">
         <h2>Champions in this era</h2>
         <p class="nx-muted">Winner of each season's final playoff series.</p>
@@ -205,6 +346,7 @@
     </div>
     <p class="nx-lede" data-when="champ"><b data-draw="ch" data-field="champion_name" data-source="champions">—</b> won the <span data-draw="ch" data-field="season_label" data-source="champions">—</span> title, beating <b data-draw="ch" data-field="runner_up_name" data-source="champions">—</b> <span data-draw="ch" data-field="series" data-source="champions">—</span> in the Finals.</p>
     <p class="nx-lede" data-when="nochamp" hidden>No champion yet. The data for this season stops on <span data-draw="last-date" data-source="games_plus" data-field="date">—</span>, before the playoffs.</p>
+    <div class="nx-finals" data-draw="finals-board"></div>
     <div class="nx-tiles">
       <div class="nx-tile"><span class="nx-tile-label">Games played</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="games" data-source="league_seasons" data-field="games">—</span></span></div>
       <div class="nx-tile"><span class="nx-tile-label">Points per team, per game</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="ppg" data-source="league_seasons" data-field="ppg">—</span></span></div>
@@ -259,6 +401,9 @@
       <div class="nx-tile"><span class="nx-tile-label">Regular season wins</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="wins" data-source="franchise_summary" data-field="wins">—</span></span></div>
       <div class="nx-tile"><span class="nx-tile-label">Regular season win %</span><span class="nx-tile-value"><span data-draw="fr-stat" data-stat="win_pct" data-source="franchise_summary" data-field="win_pct">—</span></span></div>
     </div>
+    <div class="nx-rafters" id="team-banners">
+      <div class="nx-banners" data-draw="banners"></div>
+    </div>
     <div class="nx-card" id="team-history-card">
       <h2>Win percentage by season</h2>
       <p class="nx-muted">Regular season. The dashed line is .500.</p>
@@ -309,6 +454,7 @@
       </label>
       <button type="button" class="nx-btn nx-greset">Reset</button>
     </div>
+    <div class="nx-gcards" id="game-cards" data-draw="game-cards"></div>
     <div class="nx-card" id="game-dist-card">
       <h2>Combined points per game</h2>
       <p class="nx-muted">Every game that matches the filters above, grouped in 10-point bins.</p>
@@ -385,6 +531,7 @@
             <p class="nx-muted">The ranked stat in each season. Hover a dot for that season's team and numbers.</p>
           </div>
         </div>
+        <div class="nx-pcard" id="player-card" data-draw="player-card"></div>
         <div class="nx-chart" id="player-career" data-draw="player-career" data-source="players"></div>
       </div>
     </div>
@@ -697,8 +844,8 @@
         hide() { d.hidden = true; },
       };
     };
-    const resultColor = (res) => res === 'Champion' ? dash.colors[0] : res === 'Lost Finals' ? dash.colors[1]
-      : res === 'Playoffs' ? dash.colors[2] : 'var(--cds-chart-muted)';
+    const resultColor = (res) => res === 'Champion' ? 'var(--gold)' : res === 'Lost Finals' ? dash.colors[1]
+      : res === 'Playoffs' ? dash.colors[0] : 'var(--cds-chart-muted)';
     const seasonLabel = (s) => (s - 1) + '-' + String(s % 100).padStart(2, '0');
     const axis = (g) => g.attr('font-size', null).attr('font-family', null).attr('class', 'nx-axis');
     return {state, guard, enc, fmtStat, metrics, textWidth, tip, resultColor, seasonLabel, axis, stSort: {key: 'win_pct', dir: -1}};
@@ -756,7 +903,7 @@
     document.querySelectorAll('.nx-pq').forEach((s) => { if (s !== document.activeElement) s.value = p.pq || ''; });
     document.querySelectorAll('[data-swatch]').forEach((s) => {
       const i = s.dataset.swatch;
-      s.style.background = i === 'muted' ? 'var(--cds-chart-muted)' : dash.colors[Number(i)];
+      s.style.background = i === 'muted' ? 'var(--cds-chart-muted)' : i === '0' ? 'var(--gold)' : i === '1' ? dash.colors[1] : dash.colors[0];
     });
     if (p.tab === 'seasons') {
       const c = dash.data('champions');
@@ -803,7 +950,7 @@
     const p = dash.params();
     el.dataset.where = 'era=' + nx.enc(p.era) + '&type=' + nx.enc(p.type);
     const row = dash.data('era_summary').data.find((r) => r.era === p.era && r.type === p.type);
-    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+    nx.setStat(el, el.dataset.stat, row ? row[el.dataset.stat] : null);
   });
 
   dash.draw('lg-stat', (el) => {
@@ -811,7 +958,7 @@
     const p = dash.params();
     el.dataset.where = 'season=' + nx.enc(p.season) + '&type=' + nx.enc(p.type);
     const row = dash.data('league_seasons').data.find((r) => r.season === Number(p.season) && r.type === p.type);
-    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+    nx.setStat(el, el.dataset.stat, row ? row[el.dataset.stat] : null);
   });
 
   dash.draw('ch', (el) => {
@@ -827,7 +974,7 @@
     const f = dash.params().franchise;
     el.dataset.where = 'franchise=' + nx.enc(f);
     const row = dash.data('franchise_summary').data.find((r) => r.franchise === f);
-    el.textContent = row ? nx.fmtStat(el.dataset.stat, row[el.dataset.stat]) : '—';
+    nx.setStat(el, el.dataset.stat, row ? row[el.dataset.stat] : null);
   });
 
   // Selects whose choices are data.
@@ -903,7 +1050,7 @@
     tb.replaceChildren(...rows.map((r) => {
       const tr = document.createElement('tr'); tr.dataset.key = keyOf(r.season, r.team);
       if (r.result === 'Champion') tr.className = 'nx-hl';
-      cell(tr, r.name); cell(tr, String(r.wins), 'nx-num'); cell(tr, String(r.losses), 'nx-num');
+      nxChipCell(tr, r.team, r.name); cell(tr, String(r.wins), 'nx-num'); cell(tr, String(r.losses), 'nx-num');
       cell(tr, r.win_pct == null ? '' : f3(r.win_pct), 'nx-num');
       cell(tr, r.ppg == null ? '' : f1(r.ppg), 'nx-num nx-hide-sm'); cell(tr, r.opp_ppg == null ? '' : f1(r.opp_ppg), 'nx-num nx-hide-sm');
       cell(tr, r.net == null ? '' : fsign(r.net), 'nx-num'); cell(tr, String(r.peak_elo), 'nx-num nx-hide-sm');
@@ -955,8 +1102,8 @@
     tb.replaceChildren(...rows.map((g) => {
       const tr = document.createElement('tr'); tr.dataset.key = keyOf(g.game_id);
       cell(tr, g.date); cell(tr, g.type, 'nx-hide-sm');
-      const h = cell(tr, g.home), hp = cell(tr, String(g.home_pts), 'nx-num');
-      const a = cell(tr, g.away), ap = cell(tr, String(g.away_pts), 'nx-num');
+      const h = nxChipCell(tr, g.home, ''), hp = cell(tr, String(g.home_pts), 'nx-num');
+      const a = nxChipCell(tr, g.away, ''), ap = cell(tr, String(g.away_pts), 'nx-num');
       (g.home_pts > g.away_pts ? [h, hp] : [a, ap]).forEach((td) => { td.style.fontWeight = 'var(--cds-font-weight-medium)'; });
       cell(tr, String(g.total), 'nx-num'); cell(tr, String(g.margin), 'nx-num'); cell(tr, f1(g.winner_odds), 'nx-num nx-hide-sm');
       return tr;
@@ -1001,9 +1148,15 @@
     svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(xt).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
     const line = d3.line().defined((r) => r[metric] != null).x((r) => x(r.season)).y((r) => y(r[metric]));
     const era = eras.find((e) => e.era === p.era);
-    svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', era ? 'var(--cds-chart-muted)' : dash.colors[0]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line);
+    const gid = 'nx-grad-' + Math.random().toString(36).slice(2, 8);
+    const grad = svg.append('defs').append('linearGradient').attr('id', gid).attr('x1', 0).attr('x2', 0).attr('y1', 0).attr('y2', 1);
+    [[0, .28], [.5, .08], [1, 0]].forEach(([o, a]) => grad.append('stop').attr('offset', o).attr('stop-color', dash.colors[0]).attr('stop-opacity', a));
+    const area = svg.append('path').datum(era ? rows.filter((r) => r.season >= era.first && r.season <= era.last) : rows).attr('fill', `url(#${gid})`)
+      .attr('d', d3.area().x((r) => x(r.season)).y0(H - 28).y1((r) => y(r[metric]))).attr('opacity', 0);
+    nx.grow(area, {opacity: 1}, nx.dur(500));
+    nx.drawIn(svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', era ? 'var(--cds-chart-muted)' : dash.colors[0]).attr('stroke-width', era ? 2 : 2.5).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line));
     if (era) {
-      svg.append('path').datum(rows.filter((r) => r.season >= era.first && r.season <= era.last)).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2.5).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line);
+      nx.drawIn(svg.append('path').datum(rows.filter((r) => r.season >= era.first && r.season <= era.last)).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 3).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('d', line), 800);
     }
     const dot = svg.append('circle').attr('r', 4).attr('fill', dash.colors[0]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2).attr('visibility', 'hidden');
     const tip = nx.tip(el);
@@ -1033,8 +1186,8 @@
     rows.forEach((r, i) => {
       const y0 = i * (bh + gap) + 4, sel = r.era === p.era;
       svg.append('text').attr('class', sel ? 'nx-label' : 'nx-label-muted').attr('x', left - 10).attr('y', y0 + bh / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(r.label);
-      svg.append('rect').attr('x', left).attr('y', y0).attr('height', bh).attr('rx', 3).attr('width', Math.max(1, x(r[metric]) - left))
-        .attr('fill', sel || p.era === 'all' ? dash.colors[0] : 'var(--cds-chart-muted)');
+      nx.grow(svg.append('rect').attr('x', left).attr('y', y0).attr('height', bh).attr('rx', 4).attr('width', 0)
+        .attr('fill', sel || p.era === 'all' ? dash.colors[0] : 'var(--cds-chart-muted)'), {width: Math.max(1, x(r[metric]) - left)}, i * 60);
       svg.append('text').attr('class', 'nx-label').attr('x', x(r[metric]) + 6).attr('y', y0 + bh / 2).attr('dy', '0.35em').text(M.fmt(r[metric]));
     });
   });
@@ -1067,8 +1220,8 @@
     const sorted = rows.slice().sort((a, b) => order[a.result] - order[b.result]);
     const tip = nx.tip(el);
     svg.append('g').selectAll('circle').data(sorted).join('circle')
-      .attr('cx', (r) => x(r.ppg)).attr('cy', (r) => y(r.opp_ppg)).attr('r', (r) => (r.result === 'Champion' ? 7 : 5))
-      .attr('fill', (r) => nx.resultColor(r.result)).attr('stroke', 'var(--color-panel)').attr('stroke-width', 1.5)
+      .attr('cx', (r) => x(r.ppg)).attr('cy', (r) => y(r.opp_ppg)).attr('r', 0).call((s) => nx.grow(s, {r: (r) => (r.result === 'Champion' ? 8 : 5)}, (r, i) => i * 18))
+      .attr('fill', (r) => nx.resultColor(r.result)).attr('stroke', (r) => nx.teamColors(r.team)[0]).attr('stroke-width', 2)
       .on('pointerenter', (ev, r) => tip.show(x(r.ppg), y(r.opp_ppg), r.name, [
         {text: r.wins + '-' + r.losses + ' · ' + r.result, color: nx.resultColor(r.result)},
         {text: 'Scored ' + d3.format('.1f')(r.ppg) + ', allowed ' + d3.format('.1f')(r.opp_ppg)}]))
@@ -1096,7 +1249,8 @@
     svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(rows.map((r) => r.season).filter((_, i) => i % every === 0)).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
     const tip = nx.tip(el);
     svg.append('g').selectAll('rect').data(rows).join('rect')
-      .attr('x', (r) => x(r.season)).attr('width', x.bandwidth()).attr('y', (r) => y(r.win_pct)).attr('height', (r) => y(0) - y(r.win_pct))
+      .attr('x', (r) => x(r.season)).attr('width', x.bandwidth()).attr('y', y(0)).attr('height', 0)
+      .call((s) => nx.grow(s, {y: (r) => y(r.win_pct), height: (r) => y(0) - y(r.win_pct)}, (r, i) => i * 12))
       .attr('rx', Math.min(3, x.bandwidth() / 2)).attr('fill', (r) => nx.resultColor(r.result))
       .on('pointerenter', (ev, r) => tip.show(x(r.season) + x.bandwidth() / 2, y(r.win_pct), r.season_label + ' · ' + r.name, [
         {text: r.wins + '-' + r.losses + ' (' + d3.format('.3f')(r.win_pct) + ')'},
@@ -1124,7 +1278,8 @@
     const tip = nx.tip(el);
     svg.append('g').selectAll('rect').data(bins).join('rect')
       .attr('x', (b) => x(b.x0) + 1).attr('width', (b) => Math.max(1, x(b.x1) - x(b.x0) - 2))
-      .attr('y', (b) => y(b.length)).attr('height', (b) => y(0) - y(b.length)).attr('rx', 2).attr('fill', dash.colors[0])
+      .attr('y', y(0)).attr('height', 0).attr('rx', 2).attr('fill', dash.colors[0])
+      .call((s) => nx.grow(s, {y: (b) => y(b.length), height: (b) => y(0) - y(b.length)}, (b, i) => i * 25))
       .on('pointerenter', (ev, b) => tip.show((x(b.x0) + x(b.x1)) / 2, y(b.length), b.x0 + '–' + (b.x1 - 1) + ' points', [{text: d3.format(',')(b.length) + ' games'}]))
       .on('pointerleave', () => tip.hide());
   });
@@ -1202,7 +1357,7 @@
       tr.dataset.key = pkey(r.season, r.season_type, r.player_id);
       tr.dataset.player = r.player_key; tr.style.cursor = 'pointer';
       if (r.player_key === sel) tr.className = 'nx-hl';
-      cell(tr, r.player); cell(tr, r.team); cell(tr, r.age == null || r.age === '' ? '' : String(r.age), 'nx-num nx-hide-sm');
+      cell(tr, r.player); nxChipCell(tr, r.team, ''); cell(tr, r.age == null || r.age === '' ? '' : String(r.age), 'nx-num nx-hide-sm');
       cell(tr, String(r.gp), 'nx-num'); cell(tr, one(r.min), 'nx-num nx-hide-sm');
       cell(tr, one(r.pts), 'nx-num'); cell(tr, one(r.reb), 'nx-num'); cell(tr, one(r.ast), 'nx-num');
       cell(tr, one(r.stl), 'nx-num nx-hide-sm'); cell(tr, one(r.blk), 'nx-num nx-hide-sm'); cell(tr, one(r.fg3m), 'nx-num nx-hide-sm');
@@ -1230,8 +1385,9 @@
         const t = d3.select(this); let s = t.text();
         while (this.getComputedTextLength() > left - 12 && s.length > 4) { s = s.slice(0, -2); t.text(s + '…'); }
       });
-    g.append('rect').attr('x', left).attr('height', bh).attr('rx', 3).attr('width', (r) => Math.max(1, x(num(r[k])) - left))
-      .attr('fill', (r) => (sel && r.player_key !== sel ? 'var(--cds-chart-muted)' : dash.colors[0]));
+    g.append('rect').attr('x', left).attr('height', bh).attr('rx', 4).attr('width', 0)
+      .attr('fill', (r) => (sel && r.player_key !== sel ? 'var(--cds-chart-muted)' : nx.teamColors(r.team)[0]))
+      .call((s) => nx.grow(s, {width: (r) => Math.max(1, x(num(r[k])) - left)}, (r, i) => i * 40));
     g.append('text').attr('class', 'nx-label').attr('x', (r) => x(num(r[k])) + 6).attr('y', bh / 2).attr('dy', '0.35em').text((r) => S.fmt(num(r[k])));
   });
 
@@ -1265,8 +1421,8 @@
     svg.append('g').attr('transform', `translate(${left},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(S.fmt).tickSize(0).tickPadding(8)).call(nx.axis).classed('nx-noline', true);
     const lw = nx.textWidth(svg, ['0000-00']) + 12, every = Math.max(1, Math.ceil(lw / (x.step() || lw)));
     svg.append('g').attr('transform', `translate(0,${H - 28})`).call(d3.axisBottom(x).tickValues(seasons.filter((_, i) => i % every === 0)).tickFormat(nx.seasonLabel).tickSizeOuter(0)).call(nx.axis);
-    svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
-      .attr('d', d3.line().x((r) => x(Number(r.season))).y((r) => y(num(r[k]))));
+    nx.drawIn(svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2.5).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+      .attr('d', d3.line().x((r) => x(Number(r.season))).y((r) => y(num(r[k])))));
     const tip = nx.tip(el);
     svg.append('g').selectAll('circle').data(rows).join('circle').attr('cx', (r) => x(Number(r.season))).attr('cy', (r) => y(num(r[k])))
       .attr('r', 4).attr('fill', dash.colors[0]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2)
@@ -1291,6 +1447,7 @@
 })();
 </script>
 
+<script src="extras.js"></script>
 </main>
 </body>
 </html>
