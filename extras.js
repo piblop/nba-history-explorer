@@ -191,6 +191,7 @@
     const fmtDate = (s) => d3.utcFormat('%b %-d, %Y')(new Date(s + 'T00:00:00Z'));
     box.replaceChildren(...games.map((g, i) => {
       const card = el('article', 'nx-gcard');
+      card.dataset.game = g.game_id; card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', 'Open game details');
       if (nx.dur()) card.style.animationDelay = (i * 60) + 'ms'; else card.style.animation = 'none';
       card.append(el('div', 'nx-gcard-head', fmtDate(g.date) + ' · ' + (g.type === 'Playoffs' ? 'Playoffs' : 'Regular season')));
       for (const [code, pts] of [[g.away, g.away_pts], [g.home, g.home_pts]]) {

@@ -119,7 +119,8 @@
   :root { --gold: #d9a21b; --arena: #0f1729; --arena-2: #1a2540; --court: #e8702a; --ease: cubic-bezier(.22, 1, .36, 1); --shadow: 0 1px 2px rgba(15, 23, 41, .06), 0 8px 24px rgba(15, 23, 41, .06); }
   @media (prefers-color-scheme: dark) { :root { --gold: #f0bd3e; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .25); } }
   #dash-root { padding-top: 0; }
-  .nx { gap: var(--cds-gap-xl); }
+  .nx { gap: var(--cds-gap-xl); grid-template-columns: minmax(0, 1fr); }
+  .nx > * { min-width: 0; }
   .nx-hero { position: relative; overflow: hidden; isolation: isolate; color: #f4f6fb; background: radial-gradient(120% 140% at 50% 0%, var(--arena-2), var(--arena) 60%); border-radius: 22px; margin-top: 16px; padding: clamp(28px, 6vw, 56px) clamp(18px, 4vw, 44px) clamp(22px, 4vw, 36px); box-shadow: var(--shadow); }
   .nx-court { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--court); opacity: .22; z-index: -1; }
   .nx-court [pathLength] { stroke-dasharray: 1; stroke-dashoffset: 0; }
@@ -229,6 +230,108 @@
     .nx-card, .nx-tile, .nx-tabs button, .nx-gcard { transition: none !important; }
   }
 </style>
+<style>
+  /* Game deep dive */
+  html.nx-noscroll { overflow: hidden; }
+  .nx-gcard { cursor: pointer; }
+  .nx-gcard:focus-visible, .nx-fgame:focus-visible { outline: 2px solid var(--court); outline-offset: 2px; }
+  #game-list-card tbody tr { cursor: pointer; }
+  .nx-gcard-star { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--court) 9%, transparent); font-size: .8125rem; animation: nx-rise .4s var(--ease) both; }
+  .nx-gcard-star-lab { grid-row: span 2; align-self: center; font-family: var(--font-anthropic-serif); text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; color: var(--court); }
+  .nx-gcard-star-name { font-weight: 600; }
+  .nx-gcard-star-line { color: var(--color-fg-muted); }
+  .nx-finals-strip { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: -12px; }
+  .nx-finals-strip:empty { display: none; }
+  .nx-finals-strip-lab { width: 100%; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--color-fg-muted); }
+  .nx-fgame { display: inline-flex; gap: 8px; align-items: center; font: inherit; font-size: .8125rem; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-left: 4px solid var(--team); border-radius: 8px; padding: 6px 10px; cursor: pointer; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+  .nx-fgame:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .nx-fgame-n { font-family: var(--font-anthropic-serif); font-weight: 600; color: var(--court); }
+  .nx-gp { position: fixed; inset: 0; z-index: 50; }
+  .nx-gp-backdrop { position: absolute; inset: 0; background: rgba(8, 12, 22, .55); opacity: 0; transition: opacity .3s var(--ease); backdrop-filter: blur(2px); }
+  .nx-gp-sheet { position: absolute; top: 0; right: 0; bottom: 0; width: min(880px, 100%); background: var(--color-bg); box-shadow: -20px 0 60px rgba(0, 0, 0, .25); transform: translateX(100%); transition: transform .38s var(--ease); overflow-y: auto; overscroll-behavior: contain; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) 16px; }
+  .nx-gp.nx-open .nx-gp-backdrop { opacity: 1; }
+  .nx-gp.nx-open .nx-gp-sheet { transform: none; }
+  .nx-gp-close { position: sticky; top: 0; float: right; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: var(--shadow); }
+  .nx-gp-body, .nx-gp-sec, .nx-gp-box { grid-template-columns: minmax(0, 1fr); }
+  .nx-gp-sheet { overflow-x: hidden; box-sizing: border-box; }
+  .nx-gp-body { display: grid; gap: 22px; container-type: inline-size; font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .nx-gp-board { display: grid; gap: 12px; padding: 18px; border-radius: 16px; background: var(--arena); color: #fff; margin-right: 52px; }
+  .nx-gp-meta, .nx-gp-final { font-family: var(--font-anthropic-serif); text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; color: #aeb6c6; text-align: center; }
+  .nx-gp-final { color: var(--gold); }
+  .nx-gp-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @container (max-width: 520px) { .nx-gp-teams { grid-template-columns: 1fr; } .nx-gp-board { margin-right: 0; margin-top: 48px; } }
+  .nx-gp-team { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 12px; background: linear-gradient(135deg, var(--team), color-mix(in srgb, var(--team) 60%, #000)); border-bottom: 4px solid var(--team2); opacity: .75; }
+  .nx-gp-team.nx-win { opacity: 1; box-shadow: 0 0 0 2px var(--gold); }
+  .nx-gp-who { display: grid; min-width: 0; }
+  .nx-gp-where { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
+  .nx-gp-name { font-family: var(--font-anthropic-serif); font-weight: 600; text-transform: uppercase; font-size: 1.2rem; line-height: 1.1; }
+  .nx-gp-score { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .nx-gp-sec { display: grid; gap: 12px; }
+  .nx-gp-h { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; font-size: 1.05rem; border-bottom: 2px solid var(--court); padding-bottom: 6px; }
+  .nx-gp-odds { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: var(--cds-chart-grid); }
+  .nx-gp-odds > div { height: 100%; transition: width .9s var(--ease); }
+  .nx-gp-odds-lab { display: flex; justify-content: space-between; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+  .nx-gp-elo, .nx-gp-ctx { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 10px; }
+  .nx-gp-elo-card, .nx-gp-ctx-card { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px; border-radius: 12px; background: var(--color-panel); border: 1px solid var(--color-border-line); }
+  .nx-gp-elo-num, .nx-gp-ctx-big { font-family: var(--font-anthropic-serif); font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .nx-gp-ctx-card .nx-muted { width: 100%; }
+  .nx-gp-elo-arrow { font-size: .8125rem; font-variant-numeric: tabular-nums; }
+  .nx-up { color: var(--color-ok); } .nx-down { color: var(--color-bad); }
+  .nx-gp-h2h { margin: 0; }
+  .nx-gp-meets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .nx-gp-meet { font: inherit; font-size: .78rem; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; transition: border-color .2s; }
+  .nx-gp-meet:hover { border-color: var(--court); }
+  .nx-gp-leaders { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 10px; }
+  .nx-gp-leader { display: grid; gap: 2px; padding: 14px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--team), color-mix(in srgb, var(--team) 55%, #000)); border-bottom: 4px solid var(--team2); animation: nx-rise .45s var(--ease) both; }
+  .nx-gp-leader-lab { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; opacity: .85; }
+  .nx-gp-leader-num { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 2.4rem; line-height: 1; }
+  .nx-gp-leader-name { font-weight: 600; }
+  .nx-gp-leader-line { font-size: .75rem; opacity: .85; }
+  .nx-gp-cmp { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: var(--color-panel); border: 1px solid var(--color-border-line); }
+  .nx-gp-cmp-head { display: flex; justify-content: space-between; align-items: center; }
+  .nx-gp-cmp-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2px 10px; align-items: center; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+  .nx-gp-cmp-mid { text-align: center; color: var(--color-fg-muted); font-size: .75rem; }
+  .nx-gp-cmp-v.nx-r { text-align: right; }
+  .nx-gp-cmp-v.nx-strong { font-weight: 700; }
+  .nx-gp-cmp-bars { grid-column: 1 / -1; display: flex; justify-content: center; height: 6px; background: var(--cds-chart-grid); border-radius: 99px; overflow: hidden; }
+  .nx-gp-cmp-a, .nx-gp-cmp-h { width: 0; height: 100%; transition: width .8s var(--ease); }
+  .nx-gp-cmp-a { margin-left: auto; border-radius: 99px 0 0 99px; }
+  .nx-gp-cmp-h { margin-right: auto; border-radius: 0 99px 99px 0; }
+  .nx-gp-box { display: grid; gap: 6px; }
+  .nx-gp-box-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-anthropic-serif); text-transform: uppercase; font-size: 1rem; border-left: 4px solid; padding-left: 8px; }
+  .nx-gp-tw { max-height: none; border: 1px solid var(--color-border-line); border-radius: 12px; background: var(--color-panel); }
+  .nx-gp-table td, .nx-gp-table th { white-space: nowrap; }
+  .nx-gp-table .nx-starter .nx-gp-pname { font-weight: 600; }
+  .nx-gp-pos { margin-left: 6px; color: var(--color-fg-muted); font-size: .7rem; }
+  .nx-gp-table .nx-hot { color: var(--court); font-weight: 700; }
+  .nx-gp-table .nx-total td { font-weight: 600; border-top: 2px solid var(--color-border-line); }
+  /* Dominant players */
+  .nx-era-players { display: grid; gap: 14px; }
+  .nx-kings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 10px; }
+  .nx-king { display: grid; gap: 2px; text-align: left; font: inherit; color: #fff; padding: 14px; border: 0; border-bottom: 4px solid var(--team2); border-radius: 12px; background: linear-gradient(135deg, var(--team), color-mix(in srgb, var(--team) 55%, #000)); cursor: pointer; transition: transform .25s var(--ease), box-shadow .25s var(--ease); animation: nx-rise .5s var(--ease) both; }
+  .nx-king:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+  .nx-king-lab { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; opacity: .85; }
+  .nx-king-num { font-family: var(--font-anthropic-serif); font-weight: 700; font-size: 2rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .nx-king-name { font-weight: 600; }
+  .nx-king-sub { font-size: .75rem; opacity: .85; }
+  .nx-dom { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .nx-dom-row { animation: nx-rise .45s var(--ease) both; }
+  .nx-dom-btn { width: 100%; display: grid; grid-template-columns: 1.8em auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; text-align: left; font: inherit; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-left: 4px solid var(--team); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+  .nx-dom-btn:hover { transform: translateX(3px); box-shadow: var(--shadow); }
+  .nx-dom-rank { font-family: var(--font-anthropic-serif); font-size: 1.3rem; font-weight: 600; color: var(--court); text-align: center; }
+  .nx-dom-who { display: grid; gap: 2px; min-width: 0; }
+  .nx-dom-name { font-weight: 600; }
+  .nx-dom-sub { font-size: .75rem; color: var(--color-fg-muted); }
+  .nx-dom-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .nx-badge { font-size: .68rem; padding: 1px 7px; border-radius: 99px; background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--color-fg); border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); }
+  .nx-dom-nums { display: flex; gap: 12px; }
+  .nx-dom-num { display: grid; justify-items: center; }
+  .nx-dom-num b { font-family: var(--font-anthropic-serif); font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .nx-dom-num i { font-style: normal; font-size: .65rem; letter-spacing: .08em; color: var(--color-fg-muted); }
+  .nx-dom-total { font-variant-numeric: tabular-nums; font-size: .8125rem; color: var(--color-fg-muted); }
+  @container (max-width: 640px) { .nx-dom-btn { grid-template-columns: 1.6em auto minmax(0, 1fr); } .nx-dom-nums { grid-column: 3; } .nx-dom-total { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .nx-gp-sheet, .nx-gp-backdrop, .nx-gp-odds > div, .nx-gp-cmp-a, .nx-gp-cmp-h { transition: none !important; } .nx-gp-leader, .nx-king, .nx-dom-row, .nx-gcard-star { animation: none !important; } }
+</style>
 <div class="nx">
   <header class="nx-hero" id="top">
     <svg class="nx-court" viewBox="0 0 940 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -310,6 +413,11 @@
       <div class="nx-chart nx-tall" id="trend" data-draw="trend" data-source="league_seasons eras"></div>
     </div>
 
+    <div class="nx-card" id="era-players-card">
+      <h2>Dominant players</h2>
+      <p class="nx-muted">Who ruled this era: the top 10 by total points, with per-game averages and seasons leading the league. Leaders need 70% of the most games played that season. Select a player for their career.</p>
+      <div class="nx-era-players" data-draw="era-players"></div>
+    </div>
     <div class="nx-grid">
       <div class="nx-card" id="era-compare-card">
         <h2>Eras side by side</h2>
@@ -347,6 +455,7 @@
     <p class="nx-lede" data-when="champ"><b data-draw="ch" data-field="champion_name" data-source="champions">—</b> won the <span data-draw="ch" data-field="season_label" data-source="champions">—</span> title, beating <b data-draw="ch" data-field="runner_up_name" data-source="champions">—</b> <span data-draw="ch" data-field="series" data-source="champions">—</span> in the Finals.</p>
     <p class="nx-lede" data-when="nochamp" hidden>No champion yet. The data for this season stops on <span data-draw="last-date" data-source="games_plus" data-field="date">—</span>, before the playoffs.</p>
     <div class="nx-finals" data-draw="finals-board"></div>
+    <div class="nx-finals-strip" data-draw="finals-games"></div>
     <div class="nx-tiles">
       <div class="nx-tile"><span class="nx-tile-label">Games played</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="games" data-source="league_seasons" data-field="games">—</span></span></div>
       <div class="nx-tile"><span class="nx-tile-label">Points per team, per game</span><span class="nx-tile-value"><span data-draw="lg-stat" data-stat="ppg" data-source="league_seasons" data-field="ppg">—</span></span></div>
@@ -454,7 +563,9 @@
       </label>
       <button type="button" class="nx-btn nx-greset">Reset</button>
     </div>
-    <div class="nx-gcards" id="game-cards" data-draw="game-cards"></div>
+    <div data-draw="game-card-stars">
+      <div class="nx-gcards" id="game-cards" data-draw="game-cards"></div>
+    </div>
     <div class="nx-card" id="game-dist-card">
       <h2>Combined points per game</h2>
       <p class="nx-muted">Every game that matches the filters above, grouped in 10-point bins.</p>
@@ -462,7 +573,7 @@
     </div>
     <div class="nx-card" id="game-list-card">
       <h2>Top 50 games</h2>
-      <p class="nx-muted">Winner's odds is the winning team's pre-game Elo win chance. Lower means a bigger upset.</p>
+      <p class="nx-muted">Select any game for the full breakdown. Winner's odds is the winning team's pre-game Elo win chance. Lower means a bigger upset.</p>
       <div class="nx-table-wrap">
         <table class="nx-table" data-source="games_plus" data-row-key="game_id">
           <thead><tr>
@@ -1448,6 +1559,7 @@
 </script>
 
 <script src="extras.js"></script>
+<script src="game.js"></script>
 </main>
 </body>
 </html>
